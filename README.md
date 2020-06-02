@@ -6,10 +6,8 @@ main.cpp
 |-- common.hpp
 |   |-- common.cpp
 |
-|-- data_structure.hpp
-    |-- data_structure1.cpp
-    |-- data_structure2.cpp
-    |-- data_structure3.cpp
+|-- mail_manager.hpp
+    |-- mail_manager.cpp
 ```
 
 ## Main Class
