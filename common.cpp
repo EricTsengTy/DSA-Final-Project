@@ -12,20 +12,8 @@ Date::Date(unsigned year, unsigned month, unsigned date, unsigned hour, unsigned
 /* Look For a Good Solution */
 Date::Date(char *str){
   /* YYYYMMDDHHMM */
-  str += 10;
-  unsigned minute = atoi(str);
-  *str = '\0';
-  str -= 2;
-  unsigned hour = atoi(str);
-  *str = '\0';
-  str -= 2;
-  unsigned date = atoi(str);
-  *str = '\0';
-  str -= 2;
-  unsigned month = atoi(str);
-  *str = '\0';
-  str -= 4;
-  unsigned year = atoi(str);
+  unsigned year, month, date, hour, minute;
+  sscanf(str, "%4u%2u%2u%2u%2u", &year, &month, &date, &hour, &minute);
   value = _value_calc(year, month, date, hour, minute);
 }
 /* Comparator */
