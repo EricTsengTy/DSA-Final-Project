@@ -17,15 +17,15 @@ int main(void)
   Query q;
 
   while (cin >> command) {
-    if (strcmp(command, "add")) {
+    if (strcmp(command, "add") == 0) {
       cin >> file_path;
       mailbox.add(file_path);
-    } else if (strcmp(command, "remove")) {
+    } else if (strcmp(command, "remove") == 0) {
       cin >> id;
       mailbox.remove(id);
-    } else if (strcmp(command, "longest")) {
+    } else if (strcmp(command, "longest") == 0) {
       mailbox.longest();
-    } else if (strcmp(command, "query")) {
+    } else if (strcmp(command, "query") == 0) {
       cin >> q;
       mailbox.query(q);
     }
