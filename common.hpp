@@ -29,6 +29,8 @@ public:
   Date start_date = 0;  // default min
   Date end_date = ~0;   // default max
   char expression[512] = ""; // Maybe not string
+  bool exist_receiver = false, exist_sender = false,
+    exist_start_date = false, exist_end_date = false;
 };
 std::istream &read(std::istream &is, Query &obj);
 std::istream &operator>>(std::istream &is, Query &obj);

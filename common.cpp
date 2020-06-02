@@ -47,10 +47,12 @@ std::istream &read(std::istream &is, Query &obj){
     if (buf[1] == 'f'){
       strcpy(obj.sender, buf + 3);
       obj.sender[strlen(obj.sender) - 1] = '\0';
+      obj.exist_sender = true;
     }
     else if (buf[1] == 't'){
       strcpy(obj.receiver, buf + 3);
       obj.receiver[strlen(obj.receiver) - 1] = '\0';
+      obj.exist_receiver = true;
     }
     else if (buf[1] == 'd'){
       char *parser = buf + 2;
@@ -58,9 +60,12 @@ std::istream &read(std::istream &is, Query &obj){
       if (parser == buf + 2){
         obj.start_date = Date(parser);
         parser = strtok(nullptr, "~");
+	obj.exist_start_date = true;
       }
-      if (parser != nullptr)
+      if (parser != nullptr){
         obj.end_date = Date(parser);
+	obj.exist_end_date = true;
+      }
     }
     is >> obj.expression;
   }
