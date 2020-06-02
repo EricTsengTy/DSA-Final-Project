@@ -33,4 +33,5 @@ public:
 std::istream &read(std::istream &is, Query &obj);
 std::istream &operator>>(std::istream &is, Query &obj);
 
+
 #endif
