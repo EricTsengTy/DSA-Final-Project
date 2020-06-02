@@ -8,12 +8,15 @@ MailManager mailbox;
 
 int main(void)
 {
+  using std::cin;
+  using std::string;
+  
   char command[8];
-  std::string file_path;
+  string file_path;
   int id;
   Query q;
 
-  while (std::cin >> command) {
+  while (cin >> command) {
     if (strcmp(command, "add")) {
       cin >> file_path;
       mailbox.add(file_path);
