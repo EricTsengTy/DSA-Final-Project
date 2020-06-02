@@ -26,7 +26,6 @@ Date::Date(char *str){
   *str = '\0';
   str -= 4;
   unsigned year = atoi(str);
-  cout << year << ", " << month << ", " << date << ", " << hour << ", " << minute << endl;
   value = _value_calc(year, month, date, hour, minute);
 }
 /* Comparator */
@@ -58,12 +57,12 @@ std::istream &read(std::istream &is, Query &obj){
   is >> obj.expression;
   while (buf[0] == '-'){
     if (buf[1] == 'f'){
-      strcpy(obj.receiver, buf + 3);
-      obj.receiver[strlen(obj.receiver) - 1] = '\0';
-    }
-    else if (buf[1] == 't'){
       strcpy(obj.sender, buf + 3);
       obj.sender[strlen(obj.sender) - 1] = '\0';
+    }
+    else if (buf[1] == 't'){
+      strcpy(obj.receiver, buf + 3);
+      obj.receiver[strlen(obj.receiver) - 1] = '\0';
     }
     else if (buf[1] == 'd'){
       char *parser = buf + 2;
