@@ -41,7 +41,7 @@ std::ostream &operator<<(std::ostream &os, const Date &obj){
 /*** Query ***/
 /* stdin */
 std::istream &read(std::istream &is, Query &obj){
-  obj.exist_sender = obj.exist_receiver = obj.exist_start_date = obj.exist_end_date = false;
+  obj = Query();
   char *buf = obj.expression;
   is >> obj.expression;
   while (buf[0] == '-'){
