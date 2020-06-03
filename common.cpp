@@ -65,7 +65,7 @@ std::istream &read(std::istream &is, Query &obj){
       }
       if (parser != nullptr){
         obj.end_date = Date(parser);
-	    obj.exist_end_date = true;
+	      obj.exist_end_date = true;
       }
     }
     is >> obj.expression;
