@@ -3,11 +3,11 @@
 #include <sstream>
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 #include <unordered_map>
 #include <deque>
 #include "mail_manager.hpp"
 using namespace std;
-
 unordered_map<string,unsigned> monthTransform = {
   pair<string,unsigned>("January", 1),
   pair<string,unsigned>("February", 2),
@@ -23,6 +23,16 @@ unordered_map<string,unsigned> monthTransform = {
   pair<string,unsigned>("December", 12),
 };
 
+void str2lower(char *str){
+  for (int i = 0, len = strlen(str); i != len; ++i)
+    str[i] = tolower(str[i]);
+}
+
+void str2lower(string &str){
+  for (auto i : str)
+    i = tolower(i);
+}
+
 void MailManager::add(string &file_path){
   ifstream fin;
   fin.open(file_path);
@@ -30,6 +40,7 @@ void MailManager::add(string &file_path){
   char keyword[16], buf;
   // From
   fin >> keyword >> mail->sender;
+  str2lower(mail->sender);
 
   // Date
   unsigned year, date, hour, minute;
@@ -58,7 +69,7 @@ void MailManager::add(string &file_path){
       }
     }
     else
-      word.push_back(i);
+      word.push_back(tolower(i));
   }
   if (!word.empty()){
     mail->content.insert(word);
@@ -67,7 +78,8 @@ void MailManager::add(string &file_path){
   
   // To
   fin >> keyword >> mail->receiver;
-  
+  str2lower(mail->receiver);
+
   // Content
   fin >> keyword >> noskipws >> buf;
   while (getline(fin, buffer)){
@@ -80,7 +92,7 @@ void MailManager::add(string &file_path){
       }
       else{
         ++mail->length;
-        word.push_back(i);
+        word.push_back(tolower(i));
       }
     }
   }
@@ -186,6 +198,7 @@ void MailManager::query(Query q){
                   + (q.exist_receiver ? 1 : 0)
                   + ((q.exist_start_date || q.exist_end_date) ? 1 : 0);
   if (q.exist_sender){
+    str2lower(q.sender);
     for (const auto &id : sender2id[q.sender]){
       Mail *mail = id2mail[id];
       if (mail->query_id != query_id){
@@ -198,6 +211,7 @@ void MailManager::query(Query q){
     }
   }
   if (q.exist_receiver){
+    str2lower(q.receiver);
     for (const auto &id : receiver2id[q.receiver]){
       Mail *mail = id2mail[id];
       if (mail->query_id != query_id){
@@ -263,7 +277,7 @@ void MailManager::query(Query q){
       }
     }
     else{
-      word[count] = i;
+      word[count] = tolower(i);
       ++count;
     }
   }

@@ -3,6 +3,9 @@
 #include <iostream>
 using namespace std;
 /* If year < 4096 then the value could be store by unsigned */
+void str2lower(char *str);
+void str2lower(string &str);
+
 class Date{
 public:
   friend std::ostream &write(std::ostream &os, const Date &obj);
