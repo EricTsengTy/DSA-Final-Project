@@ -230,8 +230,8 @@ void MailManager::query(Query q){
       if (beg->mail->poke == filter)
         mails.push_back(beg->mail);
     }
-    date_set.erase(Mail_date(mail_beg));
-    date_set.erase(Mail_date(mail_end));
+    date_set.erase(mail_beg);
+    date_set.erase(mail_end);
     delete mail_beg;
     delete mail_end;
   }

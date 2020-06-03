@@ -27,7 +27,7 @@ public:
   Mail_date():mail(nullptr){};
   Mail_date(Mail *p):mail(p){};
   bool operator<(const Mail_date &obj) const{
-    return (mail->date < obj.mail->date) || (mail->date == obj.mail->date && mail->id > obj.mail->id);
+    return (mail->date < obj.mail->date) || (mail->date == obj.mail->date && mail->id < obj.mail->id);
   }
   Mail *mail;
 };
