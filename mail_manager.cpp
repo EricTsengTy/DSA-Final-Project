@@ -95,13 +95,12 @@ void MailManager::add(string &file_path){
         word.push_back(tolower(i));
       }
     }
-  }
-  if (!word.empty()){
-    mail->content.insert(word);
-    word.clear();
+    if (!word.empty()){
+      mail->content.insert(word);
+      word.clear();
+    }
   }
   fin.close();
-
   // Add to Some Data Structure
   id2mail[mail->id] = mail;
   if (receiver2id.find(mail->receiver) == receiver2id.end())
@@ -266,7 +265,7 @@ void MailManager::query(Query q){
         op_pool.push_back(i);
       else{
         Expression tmp(i);
-        while (!op_pool.empty() && (op_pool.back().priority > tmp.priority || (op_pool.back().op != '!' && op_pool.back().priority == tmp.priority))){
+        while (!op_pool.empty() && (tmp.priority < op_pool.back().priority || (op_pool.back().op != '!' && op_pool.back().priority == tmp.priority))){
           exp_pool.push_back(op_pool.back());
           op_pool.pop_back();
         }
@@ -290,6 +289,14 @@ void MailManager::query(Query q){
     exp_pool.push_back(op_pool.back());
     op_pool.pop_back();
   }
+  /*
+  for (const auto &i : exp_pool){
+    if (i.operand)
+      cout << i.expression << endl;
+    else
+      cout << i.op << endl;
+  }
+  */
   /* Find ids that match expression */
   set<unsigned>ids;
   if (filter != 0)
