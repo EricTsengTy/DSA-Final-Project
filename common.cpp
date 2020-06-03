@@ -41,6 +41,7 @@ std::ostream &operator<<(std::ostream &os, const Date &obj){
 /*** Query ***/
 /* stdin */
 std::istream &read(std::istream &is, Query &obj){
+  obj.exist_sender = obj.exist_receiver = obj.exist_start_date = obj.exist_end_date = false;
   char *buf = obj.expression;
   is >> obj.expression;
   while (buf[0] == '-'){
@@ -60,11 +61,11 @@ std::istream &read(std::istream &is, Query &obj){
       if (parser == buf + 2){
         obj.start_date = Date(parser);
         parser = strtok(nullptr, "~");
-	obj.exist_start_date = true;
+	    obj.exist_start_date = true;
       }
       if (parser != nullptr){
         obj.end_date = Date(parser);
-	obj.exist_end_date = true;
+	    obj.exist_end_date = true;
       }
     }
     is >> obj.expression;

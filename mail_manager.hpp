@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <set>
 #include <map>
-#include <queue>
+#include <deque>
 #include "common.hpp"
 using namespace std;
 
@@ -19,7 +19,7 @@ public:
   unordered_set<string>content; // Subject & Content
   unsigned length = 0;
   unsigned poke;
-  unsigned query_id = -1;
+  unsigned query_id = 0;
 };
 
 class Mail_date{
@@ -42,6 +42,30 @@ public:
   Mail *mail;
 };
 
+class Expression{
+  public:
+  Expression() = default;
+  Expression(char e[24]):operand(true){
+    strcpy(expression, e);
+  }
+  Expression(char o):op(o),operand(false){
+    if (o == '(')
+      priority = -1;
+    else if (o == '!')
+      priority = 5;
+    else if (o == '&')
+      priority = 4;
+    else if (o == '|')
+      priority = 3;
+    else if (o == ')')
+      priority = 0;
+  };
+  char expression[24];
+  char op;
+  int priority;
+  bool operand;
+};
+
 class MailManager{
 public:
   void add(string &file_path);
@@ -49,13 +73,15 @@ public:
   void longest();
   void query(Query q);
 private:
+  void _matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool);
+  void _matching(set<unsigned>&ids, deque<Expression>&exp_pool);
   unordered_map<int,Mail *>id2mail;
   unordered_map<string,set<int>>receiver2id;
   unordered_map<string,set<int>>sender2id;
   set<Mail_length>length_set;
   set<Mail_date>date_set;
   unsigned amount = 0;
-  unsigned query_id = 0;
+  unsigned query_id = 1;
 };
 
 #endif
