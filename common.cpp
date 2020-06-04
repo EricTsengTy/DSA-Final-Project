@@ -26,6 +26,12 @@ bool Date::operator==(const Date &obj){
 bool Date::operator>(const Date &obj){
   return value > obj.value;
 }
+bool Date::operator<=(const Date &obj){
+  return value <= obj.value;
+}
+bool Date::operator>=(const Date &obj){
+  return value >= obj.value;
+}
 unsigned Date::_value_calc(unsigned year, unsigned month, unsigned date, unsigned hour, unsigned minute){
   return minute | (hour << 6) | (date << 11) | (month << 16) | (year << 20);
 }

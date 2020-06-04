@@ -17,6 +17,8 @@ public:
   bool operator<(const Date &obj);
   bool operator==(const Date &obj);
   bool operator>(const Date &obj);
+  bool operator<=(const Date &obj);
+  bool operator>=(const Date &obj);
 private:
   unsigned _value_calc(unsigned year, unsigned month, unsigned date, unsigned hour, unsigned minute);
   unsigned value;
