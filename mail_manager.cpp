@@ -23,7 +23,7 @@ unordered_map<string,unsigned> monthTransform = {
   pair<string,unsigned>("December", 12),
 };
 
-void str2lower(char *&str){
+void str2lower(char *str){
   for (int i = 0, len = strlen(str); i != len; ++i)
     str[i] = tolower(str[i]);
 }
@@ -40,8 +40,10 @@ void MailManager::_add_data(Mail *&mail){
   if (sender2id.find(mail->sender) == sender2id.end())
     sender2id[mail->sender] = unordered_set<int>();
   sender2id[mail->sender].insert(mail->id);
-  length_set.insert(Mail_length(mail));
+  length_max_queue.push(Mail_length(mail));
   date_set.insert(Mail_date(mail));
+  if (mail->length_remove)
+    length_max_queue.push(Mail_length(mail));
 }
 
 void MailManager::add(string &file_path){
@@ -142,7 +144,6 @@ void MailManager::remove(int id){
   s_set.erase(mail->id);
   if (s_set.empty())
     sender2id.erase(mail->sender);
-  length_set.erase(Mail_length(mail));
   date_set.erase(Mail_date(mail));
   //delete mail;
   --amount;
@@ -152,31 +153,36 @@ void MailManager::remove(int id){
 void MailManager::longest(){
   if (amount == 0)
     cout << '-' << endl;
-  else
-    cout << length_set.begin()->mail->id << ' ' << length_set.begin()->mail->length << endl;
+  else{
+    while (length_max_queue.top().mail->remove){
+      length_max_queue.top().mail->length_remove = true;
+      length_max_queue.pop();
+    }
+    cout << length_max_queue.top().mail->id << ' ' << length_max_queue.top().mail->length << endl;
+  }
 }
 
 void MailManager::_matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool){
   for (const auto &i : mails){
-      vector<bool>match;
-      for (const auto &j : exp_pool){
-        if (j.operand)
-          match.push_back((i->content.find(j.expression) != i->content.end()));
-        else if (j.op == '!')
-          match.back() = !match.back();
-        else{
-          if (j.op == '&')
-            match[match.size() - 2] = match[match.size() - 2] && match.back();
-          else if (j.op == '|')
-            match[match.size() - 2] = match[match.size() - 2] || match.back();
-          match.pop_back();
-        }  
-      }
-      if (match.size() != 1)
-        cout << "Error" << endl;
-      if (match.back())
-        ids.insert(i->id);
+    vector<bool>match;
+    for (const auto &j : exp_pool){
+      if (j.operand)
+        match.push_back((i->content.find(j.expression) != i->content.end()));
+      else if (j.op == '!')
+        match.back() = !match.back();
+      else{
+        if (j.op == '&')
+          match[match.size() - 2] = match[match.size() - 2] && match.back();
+        else if (j.op == '|')
+          match[match.size() - 2] = match[match.size() - 2] || match.back();
+        match.pop_back();
+      }  
     }
+    if (match.size() != 1)
+      cout << "Error" << endl;
+    if (match.back())
+      ids.insert(i->id);
+  }
 }
 void MailManager::_matching(set<unsigned>&ids, deque<Expression>&exp_pool){
   for (const auto &pairs : id2mail){
@@ -275,6 +281,7 @@ void MailManager::query(Query &q){
   unsigned filter = (q.exist_sender ? 1 : 0)
                   + (q.exist_receiver ? 1 : 0)
                   + ((q.exist_start_date || q.exist_end_date) ? 1 : 0);
+  bool date_check = (q.exist_start_date || q.exist_end_date);
   if (q.exist_sender){
     str2lower(q.sender);
     for (const auto &id : sender2id[q.sender]){
@@ -284,9 +291,12 @@ void MailManager::query(Query &q){
         mail->poke = 0;
       }
       ++mail->poke;
+      if (date_check && q.start_date <= mail->date && mail->date <= q.end_date)
+        ++mail->poke;
       if (mail->poke == filter)
         mails.push_back(mail);
     }
+    date_check = false;
   }
   if (q.exist_receiver){
     str2lower(q.receiver);
@@ -297,11 +307,14 @@ void MailManager::query(Query &q){
         mail->poke = 0;
       }
       ++mail->poke;
+      if (date_check && q.start_date <= mail->date && mail->date <= q.end_date)
+        ++mail->poke;
       if (mail->poke == filter)
         mails.push_back(mail);
     }
+    date_check = false;
   }
-  if (q.exist_start_date || q.exist_end_date){
+  if (date_check){
     Mail *mail_beg = new Mail;
     Mail *mail_end = new Mail;
     mail_beg->date = q.start_date;

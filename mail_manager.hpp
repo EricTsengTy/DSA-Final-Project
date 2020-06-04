@@ -7,6 +7,7 @@
 #include <set>
 #include <map>
 #include <deque>
+#include <queue>
 #include "common.hpp"
 using namespace std;
 
@@ -21,6 +22,7 @@ public:
   unsigned poke;
   unsigned query_id = 0;
   bool remove = false;
+  bool length_remove = false; // Bad Implementation
 };
 
 class Mail_date{
@@ -38,7 +40,7 @@ public:
   Mail_length():mail(nullptr){};
   Mail_length(Mail *p):mail(p){};
   bool operator<(const Mail_length &obj) const{
-    return (mail->length > obj.mail->length) || (mail->length == obj.mail->length && mail->id < obj.mail->id);
+    return (mail->length < obj.mail->length) || (mail->length == obj.mail->length && mail->id > obj.mail->id);
   }
   Mail *mail;
 };
@@ -89,8 +91,9 @@ private:
   unordered_map<int,Mail *>id2mail;
   unordered_map<string,unordered_set<int>>receiver2id;
   unordered_map<string,unordered_set<int>>sender2id;
-  set<Mail_length>length_set;
+  priority_queue<Mail_length>length_max_queue;
   set<Mail_date>date_set;
+  unordered_map<string,set<unsigned>>str2id;
   unsigned amount = 0;
   unsigned query_id = 1;
 };
