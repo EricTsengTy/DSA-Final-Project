@@ -85,8 +85,8 @@ public:
   void longest();
   void query(Query &q);
 private:
-  void _matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool);
-  void _matching(set<unsigned>&ids, deque<Expression>&exp_pool);
+  void _matching(vector<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool);
+  void _matching(vector<unsigned>&ids, deque<Expression>&exp_pool);
   void _add_data(Mail *&mail);
   unordered_map<int,Mail *>id2mail;
   unordered_map<string,unordered_set<int>>receiver2id;

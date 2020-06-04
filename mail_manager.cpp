@@ -6,6 +6,7 @@
 #include <cctype>
 #include <unordered_map>
 #include <deque>
+#include <algorithm>
 #include "mail_manager.hpp"
 using namespace std;
 unordered_map<string,unsigned> monthTransform = {
@@ -162,7 +163,7 @@ void MailManager::longest(){
   }
 }
 
-void MailManager::_matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool){
+void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool){
   for (const auto &i : mails){
     vector<bool>match;
     for (const auto &j : exp_pool){
@@ -181,10 +182,10 @@ void MailManager::_matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expre
     if (match.size() != 1)
       cout << "Error" << endl;
     if (match.back())
-      ids.insert(i->id);
+      ids.push_back(i->id);
   }
 }
-void MailManager::_matching(set<unsigned>&ids, deque<Expression>&exp_pool){
+void MailManager::_matching(vector<unsigned>&ids, deque<Expression>&exp_pool){
   for (const auto &pairs : id2mail){
       Mail *i = pairs.second;
       if (i->remove)
@@ -206,7 +207,7 @@ void MailManager::_matching(set<unsigned>&ids, deque<Expression>&exp_pool){
       if (match.size() != 1)
         cout << "Error" << endl;
       if (match.back())
-        ids.insert(i->id);
+        ids.push_back(i->id);
     }
 }
 /*
@@ -382,11 +383,12 @@ void MailManager::query(Query &q){
     op_pool.pop_back();
   }
   /* Find ids that match expression */
-  set<unsigned>ids;
+  vector<unsigned>ids;
   if (filter != 0)
     _matching(ids, mails, exp_pool);
   else
     _matching(ids, exp_pool);
+  sort(ids.begin(), ids.end());
   if (ids.empty())
     cout << '-' << endl;
   else{
@@ -397,5 +399,6 @@ void MailManager::query(Query &q){
       cout << ' ' << *p;
     cout << endl;
   }
+  
   ++query_id;
 }
