@@ -29,8 +29,19 @@ void str2lower(char *str){
 }
 
 void str2lower(string &str){
-  for (auto i : str)
+  for (auto &i : str)
     i = tolower(i);
+}
+
+void MailManager::_add_data(Mail *&mail){
+  if (receiver2id.find(mail->receiver) == receiver2id.end())
+    receiver2id[mail->receiver] = unordered_set<int>();
+  receiver2id[mail->receiver].insert(mail->id);
+  if (sender2id.find(mail->sender) == sender2id.end())
+    sender2id[mail->sender] = unordered_set<int>();
+  sender2id[mail->sender].insert(mail->id);
+  length_set.insert(Mail_length(mail));
+  date_set.insert(Mail_date(mail));
 }
 
 void MailManager::add(string &file_path){
@@ -51,9 +62,17 @@ void MailManager::add(string &file_path){
   // ID
   fin >> keyword >> mail->id;
   if (id2mail.find(mail->id) != id2mail.end()){
+    Mail *past = id2mail[mail->id];
+    if (past->remove){
+      past->remove = false;
+      _add_data(past);
+      ++amount;
+      cout << amount << endl;
+    }
+    else
+      cout << '-' << endl;
     fin.close();
     delete mail;
-    cout << '-' << endl;
     return;
   }
   // Subject
@@ -101,38 +120,33 @@ void MailManager::add(string &file_path){
     }
   }
   fin.close();
-  // Add to Some Data Structure
   id2mail[mail->id] = mail;
-  if (receiver2id.find(mail->receiver) == receiver2id.end())
-    receiver2id[mail->receiver] = set<int>();
-  receiver2id[mail->receiver].insert(mail->id);
-  if (sender2id.find(mail->sender) == sender2id.end())
-    sender2id[mail->sender] = set<int>();
-  sender2id[mail->sender].insert(mail->id);
-  length_set.insert(Mail_length(mail));
-  date_set.insert(Mail_date(mail));
+  // Add to Some Data Structure
+  _add_data(mail);
   ++amount;
   cout << amount << endl;
 }
 
 void MailManager::remove(int id){
-  if (id2mail.find(id) == id2mail.end()){
+  auto p = id2mail.find(id);
+  if (p == id2mail.end() || p->second->remove){
     cout << '-' << endl;
     return;
   }
   Mail *mail = id2mail[id];
-  id2mail.erase(id);
-  set<int> &r_set = receiver2id[mail->receiver];
+  //id2mail.erase(id);
+  mail->remove = true;
+  unordered_set<int> &r_set = receiver2id[mail->receiver];
   r_set.erase(mail->id);
   if (r_set.empty())
     receiver2id.erase(mail->receiver);
-  set<int> &s_set = sender2id[mail->sender];
+  unordered_set<int> &s_set = sender2id[mail->sender];
   s_set.erase(mail->id);
   if (s_set.empty())
     sender2id.erase(mail->sender);
   length_set.erase(Mail_length(mail));
   date_set.erase(Mail_date(mail));
-  delete mail;
+  //delete mail;
   --amount;
   cout << amount << endl;
 }
@@ -169,6 +183,8 @@ void MailManager::_matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expre
 void MailManager::_matching(set<unsigned>&ids, deque<Expression>&exp_pool){
   for (const auto &pairs : id2mail){
       Mail *i = pairs.second;
+      if (i->remove)
+        continue;
       vector<bool>match;
       for (const auto &j : exp_pool){
         if (j.operand)
@@ -189,9 +205,74 @@ void MailManager::_matching(set<unsigned>&ids, deque<Expression>&exp_pool){
         ids.insert(i->id);
     }
 }
+/*
+void MailManager::_matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool){
+  for (const auto &i : mails){
+    vector<ExpCalc>match;
+    for (const auto &j : exp_pool){
+      if (j.operand)
+        match.push_back(ExpCalc(j.expression));
+      else if (j.op == '!'){
+        if (match.back().extract)
+          match.back().value = !match.back().value;
+        else
+          match.back().negate = !match.back().negate;
+      }
+      else{
+        ExpCalc &left = match[match.size() - 2];
+        ExpCalc &right = match.back();
+        if (j.op == '&'){
+          if (left.extract && right.extract)
+            left.value = left.value && right.value;
+          else if (left.extract && left.value)
+            left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
+          else if (right.extract){
+            if (right.value)
+              left.value = (i->content.find(left.expression) != i->content.end()) ^ left.negate;
+            else
+              left.value = right.value;
+          }
+          else if (!left.extract && !right.extract){
+            if ((i->content.find(left.expression) == i->content.end()) ^ left.negate)
+              left.value = false;
+            else
+              left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
+          }
+          left.extract = true;
+        }
+        else if (j.op == '|'){
+          if (left.extract && right.extract)
+            left.value = left.value || right.value;
+          else if (left.extract && !left.value)
+            left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
+          else if (right.extract){
+            if (!right.value)
+              left.value = (i->content.find(left.expression) != i->content.end()) ^ left.negate;
+            else
+              left.value = right.value;
+          }
+          else if (!left.extract && !right.extract){
+            if ((i->content.find(left.expression) != i->content.end()) ^ left.negate)
+              left.value = true;
+            else
+              left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
+          }
+          left.extract = true;
+        }
+        match.pop_back();
+      }  
+    }
+    if (match.size() != 1)
+      cout << "Error" << endl;
+    if (!match.back().extract)
+      match.back().value = (i->content.find(match.back().expression) != i->content.end()) ^ match.back().negate;
+    if (match.back().value)
+      ids.insert(i->id);
+  }
+}
+*/
 
-
-void MailManager::query(Query q){
+void MailManager::query(Query &q){
   vector<Mail *>mails;
   unsigned filter = (q.exist_sender ? 1 : 0)
                   + (q.exist_receiver ? 1 : 0)
@@ -289,14 +370,6 @@ void MailManager::query(Query q){
     exp_pool.push_back(op_pool.back());
     op_pool.pop_back();
   }
-  /*
-  for (const auto &i : exp_pool){
-    if (i.operand)
-      cout << i.expression << endl;
-    else
-      cout << i.op << endl;
-  }
-  */
   /* Find ids that match expression */
   set<unsigned>ids;
   if (filter != 0)

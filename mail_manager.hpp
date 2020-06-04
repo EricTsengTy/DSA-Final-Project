@@ -20,6 +20,7 @@ public:
   unsigned length = 0;
   unsigned poke;
   unsigned query_id = 0;
+  bool remove = false;
 };
 
 class Mail_date{
@@ -65,19 +66,29 @@ class Expression{
   int priority;
   bool operand;
 };
-
+/*
+class ExpCalc{
+public:
+  ExpCalc(string s):expression(s){};
+  string expression;
+  bool extract = false;
+  bool value;
+  bool negate = false;
+};
+*/
 class MailManager{
 public:
   void add(string &file_path);
   void remove(int id);
   void longest();
-  void query(Query q);
+  void query(Query &q);
 private:
   void _matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool);
   void _matching(set<unsigned>&ids, deque<Expression>&exp_pool);
+  void _add_data(Mail *&mail);
   unordered_map<int,Mail *>id2mail;
-  unordered_map<string,set<int>>receiver2id;
-  unordered_map<string,set<int>>sender2id;
+  unordered_map<string,unordered_set<int>>receiver2id;
+  unordered_map<string,unordered_set<int>>sender2id;
   set<Mail_length>length_set;
   set<Mail_date>date_set;
   unsigned amount = 0;

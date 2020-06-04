@@ -16,16 +16,16 @@ int main(void)
   int id;
   Query q;
 
-  while (cin >> command) {
-    if (strcmp(command, "add") == 0) {
+  while (scanf("%s", command) != EOF) {
+    if (command[0] == 'a') {
       cin >> file_path;
       mailbox.add(file_path);
-    } else if (strcmp(command, "remove") == 0) {
+    } else if (command[0] == 'r') {
       cin >> id;
       mailbox.remove(id);
-    } else if (strcmp(command, "longest") == 0) {
+    } else if (command[0] == 'l') {
       mailbox.longest();
-    } else if (strcmp(command, "query") == 0) {
+    } else if (command[0] == 'q') {
       cin >> q;
       mailbox.query(q);
     }
