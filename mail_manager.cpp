@@ -35,16 +35,12 @@ void str2lower(string &str){
 }
 
 void MailManager::_add_data(Mail *&mail){
-  if (receiver2id.find(mail->receiver) == receiver2id.end())
-    receiver2id[mail->receiver] = unordered_set<int>();
-  receiver2id[mail->receiver].insert(mail->id);
-  if (sender2id.find(mail->sender) == sender2id.end())
-    sender2id[mail->sender] = unordered_set<int>();
-  sender2id[mail->sender].insert(mail->id);
-  length_max_queue.push(Mail_length(mail));
+  receiver2id[mail->receiver].insert(mail);
+  sender2id[mail->sender].insert(mail);
   date_set.insert(Mail_date(mail));
   if (mail->length_remove)
     length_max_queue.push(Mail_length(mail));
+  mail->length_remove = false;
 }
 
 void MailManager::add(string &file_path){
@@ -64,11 +60,11 @@ void MailManager::add(string &file_path){
   
   // ID
   fin >> keyword >> mail->id;
-  if (id2mail.find(mail->id) != id2mail.end()){
-    Mail *past = id2mail[mail->id];
-    if (past->remove){
-      past->remove = false;
-      _add_data(past);
+  auto past = id2mail.find(mail->id);
+  if (past != id2mail.end()){
+    if (past->second->remove){
+      past->second->remove = false;
+      _add_data(past->second);
       ++amount;
       cout << amount << endl;
     }
@@ -137,14 +133,8 @@ void MailManager::remove(int id){
   Mail *mail = id2mail[id];
   //id2mail.erase(id);
   mail->remove = true;
-  unordered_set<int> &r_set = receiver2id[mail->receiver];
-  r_set.erase(mail->id);
-  if (r_set.empty())
-    receiver2id.erase(mail->receiver);
-  unordered_set<int> &s_set = sender2id[mail->sender];
-  s_set.erase(mail->id);
-  if (s_set.empty())
-    sender2id.erase(mail->sender);
+  receiver2id[mail->receiver].erase(mail);
+  sender2id[mail->sender].erase(mail);
   date_set.erase(Mail_date(mail));
   //delete mail;
   --amount;
@@ -162,8 +152,8 @@ void MailManager::longest(){
     cout << length_max_queue.top().mail->id << ' ' << length_max_queue.top().mail->length << endl;
   }
 }
-
-void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool){
+/*
+void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, vector<Expression>&exp_pool){
   for (const auto &i : mails){
     vector<bool>match;
     for (const auto &j : exp_pool){
@@ -179,13 +169,12 @@ void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, deque<Ex
         match.pop_back();
       }  
     }
-    if (match.size() != 1)
-      cout << "Error" << endl;
     if (match.back())
       ids.push_back(i->id);
   }
-}
-void MailManager::_matching(vector<unsigned>&ids, deque<Expression>&exp_pool){
+}*/
+/*
+void MailManager::_matching(vector<unsigned>&ids, vector<Expression>&exp_pool){
   for (const auto &pairs : id2mail){
       Mail *i = pairs.second;
       if (i->remove)
@@ -204,14 +193,81 @@ void MailManager::_matching(vector<unsigned>&ids, deque<Expression>&exp_pool){
           match.pop_back();
         }  
       }
-      if (match.size() != 1)
-        cout << "Error" << endl;
       if (match.back())
         ids.push_back(i->id);
     }
 }
-/*
-void MailManager::_matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expression>&exp_pool){
+*/
+/* Fake */
+void MailManager::_matching(vector<unsigned>&ids, vector<Expression>&exp_pool){
+  for (const auto &pairs : id2mail){
+    Mail *i = pairs.second;
+    if (i->remove)
+      continue;
+    vector<ExpCalc>match;
+    for (const auto &j : exp_pool){
+      if (j.operand)
+        match.push_back(ExpCalc(j.expression));
+      else if (j.op == '!'){
+        if (match.back().extract)
+          match.back().value = !match.back().value;
+        else
+          match.back().negate = !match.back().negate;
+      }
+      else{
+        ExpCalc &left = match[match.size() - 2];
+        ExpCalc &right = match.back();
+        if (j.op == '&'){
+          if (left.extract && right.extract)
+            left.value = left.value && right.value;
+          else if (left.extract && left.value)
+            left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
+          else if (right.extract){
+            if (right.value)
+              left.value = (i->content.find(left.expression) != i->content.end()) ^ left.negate;
+            else
+              left.value = right.value;
+          }
+          else if (!left.extract && !right.extract){
+            if ((i->content.find(left.expression) == i->content.end()) ^ left.negate)
+              left.value = false;
+            else
+              left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
+          }
+          left.extract = true;
+        }
+        else if (j.op == '|'){
+          if (left.extract && right.extract)
+            left.value = left.value || right.value;
+          else if (left.extract && !left.value)
+            left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
+          else if (right.extract){
+            if (!right.value)
+              left.value = (i->content.find(left.expression) != i->content.end()) ^ left.negate;
+            else
+              left.value = right.value;
+          }
+          else if (!left.extract && !right.extract){
+            if ((i->content.find(left.expression) != i->content.end()) ^ left.negate)
+              left.value = true;
+            else
+              left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
+          }
+          left.extract = true;
+        }
+        match.pop_back();
+      }  
+    }
+    if (match.size() != 1)
+      cout << "Error" << endl;
+    if (!match.back().extract)
+      match.back().value = (i->content.find(match.back().expression) != i->content.end()) ^ match.back().negate;
+    if (match.back().value)
+      ids.push_back(i->id);
+  }
+}
+
+void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, vector<Expression>&exp_pool){
   for (const auto &i : mails){
     vector<ExpCalc>match;
     for (const auto &j : exp_pool){
@@ -272,10 +328,10 @@ void MailManager::_matching(set<unsigned>&ids, vector<Mail *>&mails, deque<Expre
     if (!match.back().extract)
       match.back().value = (i->content.find(match.back().expression) != i->content.end()) ^ match.back().negate;
     if (match.back().value)
-      ids.insert(i->id);
+      ids.push_back(i->id);
   }
 }
-*/
+
 
 void MailManager::query(Query &q){
   vector<Mail *>mails;
@@ -285,8 +341,7 @@ void MailManager::query(Query &q){
   bool date_check = (q.exist_start_date || q.exist_end_date);
   if (q.exist_sender){
     str2lower(q.sender);
-    for (const auto &id : sender2id[q.sender]){
-      Mail *mail = id2mail[id];
+    for (const auto &mail : sender2id[q.sender]){
       if (mail->query_id != query_id){
         mail->query_id = query_id;
         mail->poke = 0;
@@ -301,8 +356,7 @@ void MailManager::query(Query &q){
   }
   if (q.exist_receiver){
     str2lower(q.receiver);
-    for (const auto &id : receiver2id[q.receiver]){
-      Mail *mail = id2mail[id];
+    for (const auto &mail : receiver2id[q.receiver]){
       if (mail->query_id != query_id){
         mail->query_id = query_id;
         mail->poke = 0;
@@ -342,7 +396,7 @@ void MailManager::query(Query &q){
     delete mail_end;
   }
   /* Expression */
-  deque<Expression>exp_pool, op_pool;
+  vector<Expression>exp_pool, op_pool;
   char word[24];
   int count = 0;
   for (const auto &i : q.expression){
