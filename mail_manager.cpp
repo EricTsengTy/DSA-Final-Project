@@ -23,7 +23,7 @@ unordered_map<string,unsigned> monthTransform = {
   pair<string,unsigned>("December", 12),
 };
 
-void str2lower(char *str){
+void str2lower(char *&str){
   for (int i = 0, len = strlen(str); i != len; ++i)
     str[i] = tolower(str[i]);
 }
@@ -101,23 +101,21 @@ void MailManager::add(string &file_path){
 
   // Content
   fin >> keyword >> noskipws >> buf;
-  while (getline(fin, buffer)){
-    for (const auto &i : buffer){
-      if (!isalnum(i)){
-        if (!word.empty()){
-          mail->content.insert(word);
-          word.clear();
-        }
-      }
-      else{
-        ++mail->length;
-        word.push_back(tolower(i));
+  while (fin >> buf){
+    if (!isalnum(buf)){
+      if (!word.empty()){
+        mail->content.insert(word);
+        word.clear();
       }
     }
-    if (!word.empty()){
-      mail->content.insert(word);
-      word.clear();
+    else{
+      ++mail->length;
+      word.push_back(tolower(buf));
     }
+  }
+  if (!word.empty()){
+    mail->content.insert(word);
+    word.clear();
   }
   fin.close();
   id2mail[mail->id] = mail;
