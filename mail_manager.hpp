@@ -78,6 +78,27 @@ public:
   bool negate = false;
 };
 
+class ExpNode{
+public:
+  char op;
+  string expression;
+  bool negate = false;
+  ExpNode *left = nullptr;
+  ExpNode *right = nullptr;
+  unsigned depth;
+};
+class ExpTree{
+public:
+  ~ExpTree(){
+    _free_node(root);
+  }
+  void post2tree(vector<Expression>&post);
+  ExpNode *root = nullptr;
+private:
+  ExpNode *_post2tree_node(vector<Expression>&post, int &index);
+  void _free_node(ExpNode *&node);
+};
+
 class MailManager{
 public:
   void add(string &file_path);
@@ -85,8 +106,9 @@ public:
   void longest();
   void query(Query &q);
 private:
-  void _matching(vector<unsigned>&ids, vector<Mail *>&mails, vector<Expression>&exp_pool);
-  void _matching(vector<unsigned>&ids, vector<Expression>&exp_pool);
+  void _matching(vector<unsigned>&ids, vector<Mail *>&mails, ExpTree &exp_tree);
+  void _matching(vector<unsigned>&ids, ExpTree &exp_tree);
+  bool _valid_mail(unordered_set<string>&content, ExpNode *&node);
   void _add_data(Mail *&mail);
   unordered_map<int,Mail *>id2mail;
   unordered_map<string,unordered_set<Mail *>>receiver2id;

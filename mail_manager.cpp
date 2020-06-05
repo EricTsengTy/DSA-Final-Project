@@ -34,6 +34,40 @@ void str2lower(string &str){
     i = tolower(i);
 }
 
+void ExpTree::_free_node(ExpNode *&node){
+  if (node != nullptr){
+    _free_node(node->left);
+    _free_node(node->right);
+    delete node;
+  }
+}
+
+void ExpTree::post2tree(vector<Expression>&post){
+  int length = post.size() - 1;
+  root = _post2tree_node(post, length);
+}
+
+ExpNode *ExpTree::_post2tree_node(vector<Expression>&post, int &index){
+  ExpNode *node = new ExpNode;
+  while (!post[index].operand && post[index].op == '!'){
+    node->negate = !node->negate;
+    --index;
+  }
+  if (post[index].operand){
+    node->expression = post[index].expression;
+    node->depth = 0;
+    --index;
+  }
+  else{
+    node->op = post[index].op;
+    --index;
+    node->right = _post2tree_node(post, index);
+    node->left = _post2tree_node(post, index);
+    node->depth = max(node->left->depth, node->right->depth) + 1;
+  }
+  return node;
+}
+
 void MailManager::_add_data(Mail *&mail){
   receiver2id[mail->receiver].insert(mail);
   sender2id[mail->sender].insert(mail);
@@ -152,186 +186,40 @@ void MailManager::longest(){
     cout << length_max_queue.top().mail->id << ' ' << length_max_queue.top().mail->length << endl;
   }
 }
-/*
-void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, vector<Expression>&exp_pool){
-  for (const auto &i : mails){
-    vector<bool>match;
-    for (const auto &j : exp_pool){
-      if (j.operand)
-        match.push_back((i->content.find(j.expression) != i->content.end()));
-      else if (j.op == '!')
-        match.back() = !match.back();
-      else{
-        if (j.op == '&')
-          match[match.size() - 2] = match[match.size() - 2] && match.back();
-        else if (j.op == '|')
-          match[match.size() - 2] = match[match.size() - 2] || match.back();
-        match.pop_back();
-      }  
-    }
-    if (match.back())
-      ids.push_back(i->id);
+bool MailManager::_valid_mail(unordered_set<string>&content, ExpNode *&node){
+  if (node->left == nullptr)
+    return (content.find(node->expression) != content.end()) ^ node->negate;
+  if (node->left->depth < node->right->depth){
+    if (node->op == '&')
+      return (_valid_mail(content, node->left) && _valid_mail(content, node->right)) ^ node->negate;
+    else
+      return (_valid_mail(content, node->left) || _valid_mail(content, node->right)) ^ node->negate;
   }
-}*/
-/*
-void MailManager::_matching(vector<unsigned>&ids, vector<Expression>&exp_pool){
-  for (const auto &pairs : id2mail){
-      Mail *i = pairs.second;
-      if (i->remove)
-        continue;
-      vector<bool>match;
-      for (const auto &j : exp_pool){
-        if (j.operand)
-          match.push_back((i->content.find(j.expression) != i->content.end()));
-        else if (j.op == '!')
-          match.back() = !match.back();
-        else{
-          if (j.op == '&')
-            match[match.size() - 2] = match[match.size() - 2] && match.back();
-          else if (j.op == '|')
-            match[match.size() - 2] = match[match.size() - 2] || match.back();
-          match.pop_back();
-        }  
-      }
-      if (match.back())
-        ids.push_back(i->id);
-    }
+  else{
+    if (node->op == '&')
+      return (_valid_mail(content, node->right) && _valid_mail(content, node->left)) ^ node->negate;
+    else
+      return (_valid_mail(content, node->right) || _valid_mail(content, node->left)) ^ node->negate;
+  }
 }
-*/
-/* Fake */
-void MailManager::_matching(vector<unsigned>&ids, vector<Expression>&exp_pool){
-  for (const auto &pairs : id2mail){
-    Mail *i = pairs.second;
+
+void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, ExpTree &exp_tree){
+  for (const auto &i : mails){
     if (i->remove)
       continue;
-    vector<ExpCalc>match;
-    for (const auto &j : exp_pool){
-      if (j.operand)
-        match.push_back(ExpCalc(j.expression));
-      else if (j.op == '!'){
-        if (match.back().extract)
-          match.back().value = !match.back().value;
-        else
-          match.back().negate = !match.back().negate;
-      }
-      else{
-        ExpCalc &left = match[match.size() - 2];
-        ExpCalc &right = match.back();
-        if (j.op == '&'){
-          if (left.extract && right.extract)
-            left.value = left.value && right.value;
-          else if (left.extract && left.value)
-            left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
-          else if (right.extract){
-            if (right.value)
-              left.value = (i->content.find(left.expression) != i->content.end()) ^ left.negate;
-            else
-              left.value = right.value;
-          }
-          else if (!left.extract && !right.extract){
-            if ((i->content.find(left.expression) == i->content.end()) ^ left.negate)
-              left.value = false;
-            else
-              left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
-          }
-          left.extract = true;
-        }
-        else if (j.op == '|'){
-          if (left.extract && right.extract)
-            left.value = left.value || right.value;
-          else if (left.extract && !left.value)
-            left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
-          else if (right.extract){
-            if (!right.value)
-              left.value = (i->content.find(left.expression) != i->content.end()) ^ left.negate;
-            else
-              left.value = right.value;
-          }
-          else if (!left.extract && !right.extract){
-            if ((i->content.find(left.expression) != i->content.end()) ^ left.negate)
-              left.value = true;
-            else
-              left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
-          }
-          left.extract = true;
-        }
-        match.pop_back();
-      }  
-    }
-    if (match.size() != 1)
-      cout << "Error" << endl;
-    if (!match.back().extract)
-      match.back().value = (i->content.find(match.back().expression) != i->content.end()) ^ match.back().negate;
-    if (match.back().value)
+    if (_valid_mail(i->content, exp_tree.root))
       ids.push_back(i->id);
   }
 }
-
-void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, vector<Expression>&exp_pool){
-  for (const auto &i : mails){
-    vector<ExpCalc>match;
-    for (const auto &j : exp_pool){
-      if (j.operand)
-        match.push_back(ExpCalc(j.expression));
-      else if (j.op == '!'){
-        if (match.back().extract)
-          match.back().value = !match.back().value;
-        else
-          match.back().negate = !match.back().negate;
-      }
-      else{
-        ExpCalc &left = match[match.size() - 2];
-        ExpCalc &right = match.back();
-        if (j.op == '&'){
-          if (left.extract && right.extract)
-            left.value = left.value && right.value;
-          else if (left.extract && left.value)
-            left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
-          else if (right.extract){
-            if (right.value)
-              left.value = (i->content.find(left.expression) != i->content.end()) ^ left.negate;
-            else
-              left.value = right.value;
-          }
-          else if (!left.extract && !right.extract){
-            if ((i->content.find(left.expression) == i->content.end()) ^ left.negate)
-              left.value = false;
-            else
-              left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
-          }
-          left.extract = true;
-        }
-        else if (j.op == '|'){
-          if (left.extract && right.extract)
-            left.value = left.value || right.value;
-          else if (left.extract && !left.value)
-            left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
-          else if (right.extract){
-            if (!right.value)
-              left.value = (i->content.find(left.expression) != i->content.end()) ^ left.negate;
-            else
-              left.value = right.value;
-          }
-          else if (!left.extract && !right.extract){
-            if ((i->content.find(left.expression) != i->content.end()) ^ left.negate)
-              left.value = true;
-            else
-              left.value = (i->content.find(right.expression) != i->content.end()) ^ right.negate;
-          }
-          left.extract = true;
-        }
-        match.pop_back();
-      }  
-    }
-    if (match.size() != 1)
-      cout << "Error" << endl;
-    if (!match.back().extract)
-      match.back().value = (i->content.find(match.back().expression) != i->content.end()) ^ match.back().negate;
-    if (match.back().value)
-      ids.push_back(i->id);
+void MailManager::_matching(vector<unsigned>&ids, ExpTree &exp_tree){
+  for (const auto &pairs : id2mail){
+    if (pairs.second->remove)
+      continue;
+    if (_valid_mail(pairs.second->content, exp_tree.root))
+      ids.push_back(pairs.second->id);
   }
 }
-
+  
 
 void MailManager::query(Query &q){
   vector<Mail *>mails;
@@ -436,12 +324,15 @@ void MailManager::query(Query &q){
     exp_pool.push_back(op_pool.back());
     op_pool.pop_back();
   }
+  ExpTree exp_tree;
+  exp_tree.post2tree(exp_pool);
+
   /* Find ids that match expression */
   vector<unsigned>ids;
   if (filter != 0)
-    _matching(ids, mails, exp_pool);
+    _matching(ids, mails, exp_tree);
   else
-    _matching(ids, exp_pool);
+    _matching(ids, exp_tree);
   sort(ids.begin(), ids.end());
   if (ids.empty())
     cout << '-' << endl;
