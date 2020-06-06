@@ -5,16 +5,17 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <set>
-#include <map>
-#include <deque>
 #include <queue>
 #include "common.hpp"
 using namespace std;
 
+void str2lower(char *str);
+void str2lower(string &str);
+
 class Mail{
 public:
-  char receiver[64];
-  char sender[64];
+  string receiver;
+  string sender;
   Date date;
   unsigned id;
   unordered_set<string>content; // Subject & Content
@@ -48,34 +49,30 @@ public:
 class Expression{
   public:
   Expression() = default;
-  Expression(char e[24]):operand(true){
-    strcpy(expression, e);
-  }
-  Expression(char o):op(o),operand(false){
-    if (o == '(')
-      priority = -1;
-    else if (o == '!')
-      priority = 5;
-    else if (o == '&')
-      priority = 4;
-    else if (o == '|')
-      priority = 3;
-    else if (o == ')')
-      priority = 0;
+  Expression(string &e):operand(true),expression(e){}
+  Expression(const char &o):op(o),operand(false){
+    switch(o){
+      case '(':
+        priority = -1;
+        break;
+      case '!':
+        priority = 5;
+        break;
+      case '&':
+        priority = 4;
+        break;
+      case '|':
+        priority = 3;
+        break;
+      case ')':
+        priority = 0;
+        break;
+    }
   };
-  char expression[24];
+  string expression;
   char op;
   int priority;
   bool operand;
-};
-
-class ExpCalc{
-public:
-  ExpCalc(string s):expression(s){};
-  string expression;
-  bool extract = false;
-  bool value;
-  bool negate = false;
 };
 
 class ExpNode{
@@ -110,12 +107,12 @@ private:
   void _matching(vector<unsigned>&ids, ExpTree &exp_tree);
   bool _valid_mail(unordered_set<string>&content, ExpNode *&node);
   void _add_data(Mail *&mail);
+  unordered_map<string,int>id_cache;
   unordered_map<int,Mail *>id2mail;
   unordered_map<string,unordered_set<Mail *>>receiver2id;
   unordered_map<string,unordered_set<Mail *>>sender2id;
   priority_queue<Mail_length>length_max_queue;
   set<Mail_date>date_set;
-  unordered_map<string,set<unsigned>>str2id;
   unsigned amount = 0;
   unsigned query_id = 1;
 };

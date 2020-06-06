@@ -10,23 +10,25 @@ int main(void)
 {
   using std::cin;
   using std::string;
-  
+
+  // Fast I/O
+
   char command[8];
   string file_path;
   int id;
   Query q;
 
-  while (scanf("%s", command) != EOF) {
+  while (cin >> command) {
     if (command[0] == 'a') {
       cin >> file_path;
       mailbox.add(file_path);
     } else if (command[0] == 'r') {
-      cin >> id;
+      fastscan(id);
       mailbox.remove(id);
     } else if (command[0] == 'l') {
       mailbox.longest();
     } else if (command[0] == 'q') {
-      cin >> q;
+      read(q);
       mailbox.query(q);
     }
   }

@@ -4,8 +4,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
-#include <unordered_map>
-#include <deque>
 #include <algorithm>
 #include "mail_manager.hpp"
 using namespace std;
@@ -23,7 +21,45 @@ unordered_map<string,unsigned> monthTransform = {
   pair<string,unsigned>("November", 11),
   pair<string,unsigned>("December", 12),
 };
-
+/*
+unsigned month2num(string &str){
+  switch(str[0]){
+    case 'J':
+      switch(str[3]){
+        case 'u':
+          return 1;
+        case 'e':
+          return 6;
+        case 'y':
+          return 7;
+      }
+    case 'F':
+      return 2;
+    case 'M':
+      switch(str[2]){
+        case 'r':
+          return 3;
+        case 'y':
+          return 5;
+      }
+    case 'A':
+      switch(str[1]){
+        case 'p':
+          return 4;
+        case 'u':
+          return 8;
+      }
+    case 'S':
+      return 9;
+    case 'O':
+      return 10;
+    case 'N':
+      return 11;
+    case 'D':
+      return 12;
+  }
+}
+*/
 void str2lower(char *str){
   for (int i = 0, len = strlen(str); i != len; ++i)
     str[i] = tolower(str[i]);
@@ -71,13 +107,26 @@ ExpNode *ExpTree::_post2tree_node(vector<Expression>&post, int &index){
 void MailManager::_add_data(Mail *&mail){
   receiver2id[mail->receiver].insert(mail);
   sender2id[mail->sender].insert(mail);
-  date_set.insert(Mail_date(mail));
+  date_set.insert(mail);
   if (mail->length_remove)
-    length_max_queue.push(Mail_length(mail));
+    length_max_queue.push(mail);
   mail->length_remove = false;
 }
 
 void MailManager::add(string &file_path){
+  auto p = id_cache.find(file_path);
+  if (p != id_cache.end()){
+    Mail *&mail = id2mail[p->second];
+    if (mail->remove){
+      _add_data(mail);
+      mail->remove = false;
+      ++amount;
+      cout << amount << '\n';
+    }
+    else
+      cout << '-' << '\n';
+    return;
+  }
   ifstream fin;
   fin.open(file_path);
   Mail *mail = new Mail;
@@ -88,28 +137,30 @@ void MailManager::add(string &file_path){
 
   // Date
   unsigned year, date, hour, minute;
-  string month(10,0);
-  fin >> keyword >> date >> month >> year >> keyword >> hour >> buf >> minute;
-  mail->date = Date(year, monthTransform[month], date, hour, minute);
+  string buffer;
+  fin >> keyword >> date >> buffer >> year >> keyword >> hour >> buf >> minute;
+  mail->date = Date(year, monthTransform[buffer], date, hour, minute);
   
   // ID
   fin >> keyword >> mail->id;
+  id_cache[file_path] = mail->id;
+  /*
   auto past = id2mail.find(mail->id);
   if (past != id2mail.end()){
     if (past->second->remove){
       past->second->remove = false;
       _add_data(past->second);
       ++amount;
-      cout << amount << endl;
+      cout << amount << '\n';
     }
     else
-      cout << '-' << endl;
+      cout << '-' << '\n';
     fin.close();
     delete mail;
     return;
   }
+  */
   // Subject
-  string buffer;
   fin >> keyword;
   getline(fin, buffer);
   string word;
@@ -155,16 +206,16 @@ void MailManager::add(string &file_path){
   // Add to Some Data Structure
   _add_data(mail);
   ++amount;
-  cout << amount << endl;
+  cout << amount << '\n';
 }
 
 void MailManager::remove(int id){
   auto p = id2mail.find(id);
   if (p == id2mail.end() || p->second->remove){
-    cout << '-' << endl;
+    cout << '-' << '\n';
     return;
   }
-  Mail *mail = id2mail[id];
+  Mail *mail = p->second;
   //id2mail.erase(id);
   mail->remove = true;
   receiver2id[mail->receiver].erase(mail);
@@ -172,18 +223,18 @@ void MailManager::remove(int id){
   date_set.erase(Mail_date(mail));
   //delete mail;
   --amount;
-  cout << amount << endl;
+  cout << amount << '\n';
 }
 
 void MailManager::longest(){
   if (amount == 0)
-    cout << '-' << endl;
+    cout << '-' << '\n';
   else{
     while (length_max_queue.top().mail->remove){
       length_max_queue.top().mail->length_remove = true;
       length_max_queue.pop();
     }
-    cout << length_max_queue.top().mail->id << ' ' << length_max_queue.top().mail->length << endl;
+    cout << length_max_queue.top().mail->id << ' ' << length_max_queue.top().mail->length << '\n';
   }
 }
 bool MailManager::_valid_mail(unordered_set<string>&content, ExpNode *&node){
@@ -285,16 +336,15 @@ void MailManager::query(Query &q){
   }
   /* Expression */
   vector<Expression>exp_pool, op_pool;
-  char word[24];
+  string word;
   int count = 0;
   for (const auto &i : q.expression){
     if (i == '\0')
       break;
     if (!isalnum(i)){
-      if (count != 0){
-        word[count] = '\0';
+      if (!word.empty()){
         exp_pool.push_back(word);
-        count = 0;
+        word.clear();
       }
       if (i == '(')
         op_pool.push_back(i);
@@ -311,14 +361,12 @@ void MailManager::query(Query &q){
       }
     }
     else{
-      word[count] = tolower(i);
-      ++count;
+      word.push_back(tolower(i));
     }
   }
-  if (count != 0){
-    word[count] = '\0';
+  if (!word.empty()){
     exp_pool.push_back(word);
-    count = 0;
+    word.clear();
   }
   while (!op_pool.empty()){
     exp_pool.push_back(op_pool.back());
@@ -335,14 +383,14 @@ void MailManager::query(Query &q){
     _matching(ids, exp_tree);
   sort(ids.begin(), ids.end());
   if (ids.empty())
-    cout << '-' << endl;
+    cout << '-' << '\n';
   else{
     auto p = ids.begin();
     cout << *p;
     ++p;
     for (; p != ids.end(); ++p)
       cout << ' ' << *p;
-    cout << endl;
+    cout << '\n';
   }
   
   ++query_id;
