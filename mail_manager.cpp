@@ -21,6 +21,17 @@ unordered_map<string,unsigned> monthTransform = {
   pair<string,unsigned>("November", 11),
   pair<string,unsigned>("December", 12),
 };
+
+unsigned long djb2_hash(const string &str){
+  unsigned long value = 5381;
+  int c;
+  for (const auto &i : str){
+    c = i;
+    value = ((value << 5) + value) + c;
+  }
+  return value;
+}
+
 /*
 unsigned month2num(string &str){
   switch(str[0]){
@@ -60,16 +71,30 @@ unsigned month2num(string &str){
   }
 }
 */
-void str2lower(char *str){
+inline void str2lower(char *str){
   for (int i = 0, len = strlen(str); i != len; ++i)
     str[i] = tolower(str[i]);
 }
 
-void str2lower(string &str){
+inline void str2lower(string &str){
   for (auto &i : str)
     i = tolower(i);
 }
 
+void ExpTree::_free_node(ExpNode *&node){
+  vector<ExpNode *>nodes;
+  nodes.push_back(node);
+  while (!nodes.empty()){
+    ExpNode *p = nodes.back();
+    nodes.pop_back();
+    if (p->left != nullptr)
+      nodes.push_back(p->left);
+    if (p->right != nullptr)
+      nodes.push_back(p->right);
+    delete p;
+  }
+}
+/*
 void ExpTree::_free_node(ExpNode *&node){
   if (node != nullptr){
     _free_node(node->left);
@@ -77,7 +102,7 @@ void ExpTree::_free_node(ExpNode *&node){
     delete node;
   }
 }
-
+*/
 void ExpTree::post2tree(vector<Expression>&post){
   int length = post.size() - 1;
   root = _post2tree_node(post, length);
@@ -116,10 +141,9 @@ void MailManager::_add_data(Mail *&mail){
 void MailManager::add(string &file_path){
   auto p = id_cache.find(file_path);
   if (p != id_cache.end()){
-    Mail *&mail = id2mail[p->second];
-    if (mail->remove){
-      _add_data(mail);
-      mail->remove = false;
+    if (p->second->remove){
+      _add_data(p->second);
+      p->second->remove = false;
       ++amount;
       cout << amount << '\n';
     }
@@ -143,7 +167,6 @@ void MailManager::add(string &file_path){
   
   // ID
   fin >> keyword >> mail->id;
-  id_cache[file_path] = mail->id;
   /*
   auto past = id2mail.find(mail->id);
   if (past != id2mail.end()){
@@ -205,6 +228,7 @@ void MailManager::add(string &file_path){
   id2mail[mail->id] = mail;
   // Add to Some Data Structure
   _add_data(mail);
+  id_cache[file_path] = mail;
   ++amount;
   cout << amount << '\n';
 }
@@ -237,7 +261,7 @@ void MailManager::longest(){
     cout << length_max_queue.top().mail->id << ' ' << length_max_queue.top().mail->length << '\n';
   }
 }
-bool MailManager::_valid_mail(unordered_set<string>&content, ExpNode *&node){
+bool MailManager::_valid_mail(unordered_set<string, StringHasher>&content, ExpNode *&node){
   if (node->left == nullptr)
     return (content.find(node->expression) != content.end()) ^ node->negate;
   if (node->left->depth < node->right->depth){

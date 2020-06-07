@@ -144,7 +144,7 @@ void read(Query &obj){
   }
   int count = 0;
   obj.expression[count] = buf;
-  while ((buf = getchar()) != '\n' && buf != 13)
+  while ((buf = getchar()) != '\n')
     obj.expression[++count] = buf;
   obj.expression[++count] = '\0';
 }

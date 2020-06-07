@@ -9,8 +9,17 @@
 #include "common.hpp"
 using namespace std;
 
-void str2lower(char *str);
-void str2lower(string &str);
+inline void str2lower(char *str);
+inline void str2lower(string &str);
+
+unsigned long djb2_hash(const string &str);
+
+struct StringHasher{
+  size_t operator()(const string &obj) const{
+    //return std::hash<string>()(obj);
+    return djb2_hash(obj);
+  }
+};
 
 class Mail{
 public:
@@ -18,7 +27,7 @@ public:
   string sender;
   Date date;
   unsigned id;
-  unordered_set<string>content; // Subject & Content
+  unordered_set<string, StringHasher>content; // Subject & Content
   unsigned length = 0;
   unsigned poke;
   unsigned query_id = 0;
@@ -105,12 +114,12 @@ public:
 private:
   void _matching(vector<unsigned>&ids, vector<Mail *>&mails, ExpTree &exp_tree);
   void _matching(vector<unsigned>&ids, ExpTree &exp_tree);
-  bool _valid_mail(unordered_set<string>&content, ExpNode *&node);
+  bool _valid_mail(unordered_set<string, StringHasher>&content, ExpNode *&node);
   void _add_data(Mail *&mail);
-  unordered_map<string,int>id_cache;
+  unordered_map<string,Mail *, StringHasher>id_cache;
   unordered_map<int,Mail *>id2mail;
-  unordered_map<string,unordered_set<Mail *>>receiver2id;
-  unordered_map<string,unordered_set<Mail *>>sender2id;
+  unordered_map<string,unordered_set<Mail *>, StringHasher>receiver2id;
+  unordered_map<string,unordered_set<Mail *>, StringHasher>sender2id;
   priority_queue<Mail_length>length_max_queue;
   set<Mail_date>date_set;
   unsigned amount = 0;
