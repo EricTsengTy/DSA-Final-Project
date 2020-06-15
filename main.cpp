@@ -12,11 +12,10 @@ int main(void)
   using std::string;
 
   // Fast I/O
-
   char command[8];
   string file_path;
   int id;
-  Query q;
+  FastQuery q;
 
   while (cin >> command) {
     if (command[0] == 'a') {

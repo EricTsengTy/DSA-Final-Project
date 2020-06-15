@@ -16,13 +16,14 @@ unsigned long djb2_hash(const string &str);
 
 struct StringHasher{
   size_t operator()(const string &obj) const{
-    //return std::hash<string>()(obj);
     return djb2_hash(obj);
   }
 };
 
 class Mail{
 public:
+  Mail() = default;
+  Mail(unsigned i):id(i){};
   string receiver;
   string sender;
   Date date;
@@ -32,7 +33,7 @@ public:
   unsigned poke;
   unsigned query_id = 0;
   bool remove = false;
-  bool length_remove = true; // Bad Implementation
+  bool length_remove = false;
 };
 
 class Mail_date{
@@ -55,6 +56,7 @@ public:
   Mail *mail;
 };
 
+
 class Expression{
   public:
   Expression() = default;
@@ -62,19 +64,19 @@ class Expression{
   Expression(const char &o):op(o),operand(false){
     switch(o){
       case '(':
-        priority = -1;
-        break;
-      case '!':
-        priority = 5;
-        break;
-      case '&':
-        priority = 4;
-        break;
-      case '|':
-        priority = 3;
+        priority = -8;
         break;
       case ')':
+        priority = -4;
+        break;
+      case '!':
         priority = 0;
+        break;
+      case '&':
+        priority = -1;
+        break;
+      case '|':
+        priority = -2;
         break;
     }
   };
@@ -91,6 +93,7 @@ public:
   bool negate = false;
   ExpNode *left = nullptr;
   ExpNode *right = nullptr;
+  bool operand;
   unsigned depth;
 };
 class ExpTree{
@@ -98,19 +101,34 @@ public:
   ~ExpTree(){
     _free_node(root);
   }
-  void post2tree(vector<Expression>&post);
+  void post2tree(vector<Expression *>&post);
   ExpNode *root = nullptr;
 private:
-  ExpNode *_post2tree_node(vector<Expression>&post, int &index);
+  void _post2tree_node(vector<Expression *>&post, int &index, ExpNode *&node);
   void _free_node(ExpNode *&node);
 };
+
+class FastQuery{
+public:
+  friend std::istream &read(std::istream &is, Query &obj);
+  char receiver[64];
+  char sender[64];
+  Date start_date = 0;  // default min
+  Date end_date = ~0;   // default max
+  Expression expression[128]; // Maybe would change to array or something
+  int count = 0;
+  bool exist_receiver = false, exist_sender = false,
+    exist_start_date = false, exist_end_date = false;
+};
+/* Another read option */
+void read(FastQuery &obj);
 
 class MailManager{
 public:
   void add(string &file_path);
   void remove(int id);
   void longest();
-  void query(Query &q);
+  void query(FastQuery &q);
 private:
   void _matching(vector<unsigned>&ids, vector<Mail *>&mails, ExpTree &exp_tree);
   void _matching(vector<unsigned>&ids, ExpTree &exp_tree);
@@ -124,6 +142,9 @@ private:
   set<Mail_date>date_set;
   unsigned amount = 0;
   unsigned query_id = 1;
+  Mail mail_beg = 0U;
+  Mail mail_end = UINT32_MAX;
+  ExpTree exp_tree;
 };
 
 #endif

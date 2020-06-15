@@ -7,7 +7,7 @@
 #include <algorithm>
 #include "mail_manager.hpp"
 using namespace std;
-unordered_map<string,unsigned> monthTransform = {
+unordered_map<string,unsigned,StringHasher> monthTransform = {
   pair<string,unsigned>("January", 1),
   pair<string,unsigned>("February", 2),
   pair<string,unsigned>("March", 3),
@@ -24,10 +24,8 @@ unordered_map<string,unsigned> monthTransform = {
 
 unsigned long djb2_hash(const string &str){
   unsigned long value = 5381;
-  int c;
   for (const auto &i : str){
-    c = i;
-    value = ((value << 5) + value) + c;
+    value = ((value << 5) + value) + i;
   }
   return value;
 }
@@ -94,55 +92,50 @@ void ExpTree::_free_node(ExpNode *&node){
     delete p;
   }
 }
-/*
-void ExpTree::_free_node(ExpNode *&node){
-  if (node != nullptr){
-    _free_node(node->left);
-    _free_node(node->right);
-    delete node;
-  }
-}
-*/
-void ExpTree::post2tree(vector<Expression>&post){
+void ExpTree::post2tree(vector<Expression *>&post){
   int length = post.size() - 1;
-  root = _post2tree_node(post, length);
+  _post2tree_node(post, length, root);
 }
 
-ExpNode *ExpTree::_post2tree_node(vector<Expression>&post, int &index){
-  ExpNode *node = new ExpNode;
-  while (!post[index].operand && post[index].op == '!'){
+void ExpTree::_post2tree_node(vector<Expression *>&post, int &index, ExpNode *&node){
+  if (node == nullptr)
+    node = new ExpNode;
+  node->negate = false;
+  while (!post[index]->operand && post[index]->op == '!'){
     node->negate = !node->negate;
     --index;
   }
-  if (post[index].operand){
-    node->expression = post[index].expression;
+  if (post[index]->operand){
+    node->expression = post[index]->expression;
     node->depth = 0;
+    node->operand = true;
     --index;
   }
   else{
-    node->op = post[index].op;
+    node->operand = false;
+    node->op = post[index]->op;
     --index;
-    node->right = _post2tree_node(post, index);
-    node->left = _post2tree_node(post, index);
+    _post2tree_node(post, index, node->right);
+    _post2tree_node(post, index, node->left);
     node->depth = max(node->left->depth, node->right->depth) + 1;
   }
-  return node;
+  //return node;
 }
-
+/*
 void MailManager::_add_data(Mail *&mail){
-  receiver2id[mail->receiver].insert(mail);
-  sender2id[mail->sender].insert(mail);
-  date_set.insert(mail);
   if (mail->length_remove)
     length_max_queue.push(mail);
   mail->length_remove = false;
 }
-
+*/
 void MailManager::add(string &file_path){
   auto p = id_cache.find(file_path);
   if (p != id_cache.end()){
     if (p->second->remove){
-      _add_data(p->second);
+      if (p->second->length_remove){
+        length_max_queue.push(p->second);
+        p->second->length_remove = false;
+      }
       p->second->remove = false;
       ++amount;
       cout << amount << '\n';
@@ -163,26 +156,10 @@ void MailManager::add(string &file_path){
   unsigned year, date, hour, minute;
   string buffer;
   fin >> keyword >> date >> buffer >> year >> keyword >> hour >> buf >> minute;
-  mail->date = Date(year, monthTransform[buffer], date, hour, minute);
+  mail->date.set_value(year, monthTransform[buffer], date, hour, minute);
   
   // ID
   fin >> keyword >> mail->id;
-  /*
-  auto past = id2mail.find(mail->id);
-  if (past != id2mail.end()){
-    if (past->second->remove){
-      past->second->remove = false;
-      _add_data(past->second);
-      ++amount;
-      cout << amount << '\n';
-    }
-    else
-      cout << '-' << '\n';
-    fin.close();
-    delete mail;
-    return;
-  }
-  */
   // Subject
   fin >> keyword;
   getline(fin, buffer);
@@ -227,8 +204,11 @@ void MailManager::add(string &file_path){
   fin.close();
   id2mail[mail->id] = mail;
   // Add to Some Data Structure
-  _add_data(mail);
   id_cache[file_path] = mail;
+  receiver2id[mail->receiver].insert(mail);
+  sender2id[mail->sender].insert(mail);
+  length_max_queue.push(mail);
+  date_set.insert(mail);
   ++amount;
   cout << amount << '\n';
 }
@@ -239,13 +219,7 @@ void MailManager::remove(int id){
     cout << '-' << '\n';
     return;
   }
-  Mail *mail = p->second;
-  //id2mail.erase(id);
-  mail->remove = true;
-  receiver2id[mail->receiver].erase(mail);
-  sender2id[mail->sender].erase(mail);
-  date_set.erase(Mail_date(mail));
-  //delete mail;
+  p->second->remove = true;
   --amount;
   cout << amount << '\n';
 }
@@ -262,7 +236,7 @@ void MailManager::longest(){
   }
 }
 bool MailManager::_valid_mail(unordered_set<string, StringHasher>&content, ExpNode *&node){
-  if (node->left == nullptr)
+  if (node->operand)
     return (content.find(node->expression) != content.end()) ^ node->negate;
   if (node->left->depth < node->right->depth){
     if (node->op == '&')
@@ -279,7 +253,7 @@ bool MailManager::_valid_mail(unordered_set<string, StringHasher>&content, ExpNo
 }
 
 void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, ExpTree &exp_tree){
-  for (const auto &i : mails){
+  for (auto &i : mails){
     if (i->remove)
       continue;
     if (_valid_mail(i->content, exp_tree.root))
@@ -287,7 +261,7 @@ void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, ExpTree 
   }
 }
 void MailManager::_matching(vector<unsigned>&ids, ExpTree &exp_tree){
-  for (const auto &pairs : id2mail){
+  for (auto &pairs : id2mail){
     if (pairs.second->remove)
       continue;
     if (_valid_mail(pairs.second->content, exp_tree.root))
@@ -296,7 +270,7 @@ void MailManager::_matching(vector<unsigned>&ids, ExpTree &exp_tree){
 }
   
 
-void MailManager::query(Query &q){
+void MailManager::query(FastQuery &q){
   vector<Mail *>mails;
   unsigned filter = (q.exist_sender ? 1 : 0)
                   + (q.exist_receiver ? 1 : 0)
@@ -304,7 +278,7 @@ void MailManager::query(Query &q){
   bool date_check = (q.exist_start_date || q.exist_end_date);
   if (q.exist_sender){
     str2lower(q.sender);
-    for (const auto &mail : sender2id[q.sender]){
+    for (auto &mail : sender2id[q.sender]){
       if (mail->query_id != query_id){
         mail->query_id = query_id;
         mail->poke = 0;
@@ -319,7 +293,7 @@ void MailManager::query(Query &q){
   }
   if (q.exist_receiver){
     str2lower(q.receiver);
-    for (const auto &mail : receiver2id[q.receiver]){
+    for (auto &mail : receiver2id[q.receiver]){
       if (mail->query_id != query_id){
         mail->query_id = query_id;
         mail->poke = 0;
@@ -333,17 +307,10 @@ void MailManager::query(Query &q){
     date_check = false;
   }
   if (date_check){
-    Mail *mail_beg = new Mail;
-    Mail *mail_end = new Mail;
-    mail_beg->date = q.start_date;
-    mail_beg->id = 0;
-    mail_end->date = q.end_date;
-    mail_end->id = UINT32_MAX;
-    date_set.insert(Mail_date(mail_beg));
-    date_set.insert(Mail_date(mail_end));
-    auto beg = date_set.find(Mail_date(mail_beg));
-    ++beg;
-    auto tail = date_set.find(Mail_date(mail_end));
+    mail_beg.date = q.start_date;
+    mail_end.date = q.end_date;
+    auto beg = date_set.lower_bound(&mail_beg);
+    auto tail = date_set.upper_bound(&mail_end);
     for (; beg != tail; ++beg){
       if (beg->mail->query_id != query_id){
         beg->mail->query_id = query_id;
@@ -353,52 +320,43 @@ void MailManager::query(Query &q){
       if (beg->mail->poke == filter)
         mails.push_back(beg->mail);
     }
-    date_set.erase(mail_beg);
-    date_set.erase(mail_end);
-    delete mail_beg;
-    delete mail_end;
   }
   /* Expression */
-  vector<Expression>exp_pool, op_pool;
+  vector<Expression *>exp_pool, op_pool;
   string word;
   int count = 0;
-  for (const auto &i : q.expression){
-    if (i == '\0')
-      break;
-    if (!isalnum(i)){
-      if (!word.empty()){
-        exp_pool.push_back(word);
-        word.clear();
-      }
-      if (i == '(')
-        op_pool.push_back(i);
+  
+  /* 7 seconds */
+  Expression left;
+  left.priority = -256;
+  op_pool.push_back(&left);
+  for (int k = 0; k != q.count; ++k){
+    Expression &i = q.expression[k];
+    if (!i.operand){
+      if (i.op == '(')
+        op_pool.push_back(&i);
       else{
-        Expression tmp(i);
-        while (!op_pool.empty() && (tmp.priority < op_pool.back().priority || (op_pool.back().op != '!' && op_pool.back().priority == tmp.priority))){
+                              /* Strange Implmentation Haha */
+        while ((i.priority << 1) < op_pool.back()->priority){
           exp_pool.push_back(op_pool.back());
           op_pool.pop_back();
         }
-        if (!op_pool.empty() && i == ')')
+        if (i.op == ')')
           op_pool.pop_back();
         else
-          op_pool.push_back(tmp);
+          op_pool.push_back(&i);
       }
     }
-    else{
-      word.push_back(tolower(i));
-    }
+    else
+      exp_pool.push_back(&i);
   }
-  if (!word.empty()){
-    exp_pool.push_back(word);
-    word.clear();
-  }
-  while (!op_pool.empty()){
+  while (op_pool.size() != 1){
     exp_pool.push_back(op_pool.back());
     op_pool.pop_back();
   }
-  ExpTree exp_tree;
+  
   exp_tree.post2tree(exp_pool);
-
+  
   /* Find ids that match expression */
   vector<unsigned>ids;
   if (filter != 0)
@@ -416,6 +374,75 @@ void MailManager::query(Query &q){
       cout << ' ' << *p;
     cout << '\n';
   }
-  
   ++query_id;
+}
+
+/* Another read option */
+void read(FastQuery &obj){
+  obj.exist_end_date = obj.exist_receiver = obj.exist_sender = obj.exist_start_date = false;
+  obj.start_date = 0;
+  obj.end_date = ~0;
+  obj.count = 0;
+  char buf;
+  while ((buf = getchar()) == '-' || buf == ' '){
+    if (buf == ' ')
+      continue;
+    buf = getchar();
+    if (buf == 'f'){
+      obj.exist_sender = true;
+      int count = -1;
+      getchar();
+      while ((buf = getchar()) != '\"')
+        obj.sender[++count] = buf;
+      obj.sender[++count] = '\0';
+    }
+    else if (buf == 't'){
+      obj.exist_receiver = true;
+      int count = -1;
+      getchar();
+      while ((buf = getchar()) != '\"')
+        obj.receiver[++count] = buf;
+      obj.receiver[++count] = '\0';
+    }
+    else if (buf == 'd'){
+      buf = getchar();
+      char date[16];
+      date[12] = '\0';
+      if (buf != '~'){
+        obj.exist_start_date = true;
+        date[0] = buf;
+        for (int i = 1; i != 12; ++i)
+          date[i] = getchar();
+        obj.start_date = Date(date);
+        getchar();
+      }
+      if ((buf = getchar()) != ' '){
+        obj.exist_end_date = true;
+        date[0] = buf;
+        for (int i = 1; i != 12; ++i)
+          date[i] = getchar();
+        obj.end_date = Date(date);
+        getchar();
+      }
+    }
+  }
+  string word;
+  while (buf != '\n'){
+    if (!isalnum(buf)){
+      if (!word.empty()){
+        obj.expression[obj.count] = word;
+        ++obj.count;
+        word.clear();
+      }
+      obj.expression[obj.count] = buf;
+      ++obj.count;
+    }
+    else
+      word.push_back(tolower(buf));
+    buf = getchar();
+  }
+  if (!word.empty()){
+    obj.expression[obj.count] = Expression(word);
+    ++obj.count;
+  }
 }

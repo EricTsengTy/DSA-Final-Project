@@ -95,60 +95,8 @@ std::istream &read(std::istream &is, Query &obj){
   }
   return is;
 }
-
-/* Another read option */
-void read(Query &obj){
-  obj = Query();
-  char buf;
-  while ((buf = getchar()) == '-' || buf == ' '){
-    if (buf == ' ')
-      continue;
-    buf = getchar();
-    if (buf == 'f'){
-      obj.exist_sender = true;
-      int count = -1;
-      getchar();
-      while ((buf = getchar()) != '\"')
-        obj.sender[++count] = buf;
-      obj.sender[++count] = '\0';
-    }
-    else if (buf == 't'){
-      obj.exist_receiver = true;
-      int count = -1;
-      getchar();
-      while ((buf = getchar()) != '\"')
-        obj.receiver[++count] = buf;
-      obj.receiver[++count] = '\0';
-    }
-    else if (buf == 'd'){
-      buf = getchar();
-      char date[16];
-      date[12] = '\0';
-      if (buf != '~'){
-        obj.exist_start_date = true;
-        date[0] = buf;
-        for (int i = 1; i != 12; ++i)
-          date[i] = getchar();
-        obj.start_date = Date(date);
-        getchar();
-      }
-      if ((buf = getchar()) != ' '){
-        obj.exist_end_date = true;
-        date[0] = buf;
-        for (int i = 1; i != 12; ++i)
-          date[i] = getchar();
-        obj.end_date = Date(date);
-        getchar();
-      }
-    }
-  }
-  int count = 0;
-  obj.expression[count] = buf;
-  while ((buf = getchar()) != '\n')
-    obj.expression[++count] = buf;
-  obj.expression[++count] = '\0';
-}
-
 std::istream &operator>>(std::istream &is, Query &obj){
-  return read(is, obj);
+  read(is, obj);
+  return is;
 }
+

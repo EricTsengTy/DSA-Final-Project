@@ -13,14 +13,17 @@ public:
   Date(int v):value(v){};
   Date(unsigned &year, unsigned &month, unsigned &date, unsigned &hour, unsigned &minute);
   Date(char *str);
+  void set_value(unsigned &year, unsigned &month, unsigned &date, unsigned &hour, unsigned &minute){
+    value = _value_calc(year, month, date, hour, minute);
+  }
   bool operator<(const Date &obj);
   bool operator==(const Date &obj);
   bool operator>(const Date &obj);
   bool operator<=(const Date &obj);
   bool operator>=(const Date &obj);
-  unsigned value;
 private:
   unsigned _value_calc(unsigned &year, unsigned &month, unsigned &date, unsigned &hour, unsigned &minute);
+  unsigned value;
 };
 
 class Query{
@@ -30,12 +33,11 @@ public:
   char sender[64];
   Date start_date = 0;  // default min
   Date end_date = ~0;   // default max
-  char expression[512]; // Maybe not string
+  char expression[256]; // Maybe would change to array or something
   bool exist_receiver = false, exist_sender = false,
     exist_start_date = false, exist_end_date = false;
 };
 std::istream &read(std::istream &is, Query &obj);
 std::istream &operator>>(std::istream &is, Query &obj);
-void read(Query &obj);
 
 #endif
