@@ -80,6 +80,8 @@ inline void str2lower(string &str){
 }
 
 void ExpTree::_free_node(ExpNode *&node){
+  if (node == nullptr)
+    return;
   vector<ExpNode *>nodes;
   nodes.push_back(node);
   while (!nodes.empty()){
