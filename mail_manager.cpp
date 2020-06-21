@@ -121,15 +121,7 @@ void ExpTree::_post2tree_node(vector<Expression *>&post, int &index, ExpNode *&n
     _post2tree_node(post, index, node->left);
     node->depth = max(node->left->depth, node->right->depth) + 1;
   }
-  //return node;
 }
-/*
-void MailManager::_add_data(Mail *&mail){
-  if (mail->length_remove)
-    length_max_queue.push(mail);
-  mail->length_remove = false;
-}
-*/
 void MailManager::add(string &file_path){
   auto p = id_cache.find(file_path);
   if (p != id_cache.end()){
