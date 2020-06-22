@@ -94,6 +94,7 @@ void ExpTree::_free_node(ExpNode *&node){
     delete p;
   }
 }
+
 void ExpTree::post2tree(vector<Expression *>&post){
   int length = post.size() - 1;
   _post2tree_node(post, length, root);
@@ -141,6 +142,7 @@ void MailManager::add(String &file_path){
   ifstream fin;
   fin.open(file_path.str);
   Mail *mail = new Mail;
+  String buffer;
   char keyword[16], buf;
   // From
   fin >> keyword >> mail->sender;
@@ -148,7 +150,6 @@ void MailManager::add(String &file_path){
 
   // Date
   unsigned year, date, hour, minute;
-  String buffer;
   fin >> keyword >> date >> buffer >> year >> keyword >> hour >> buf >> minute;
   mail->date.set_value(year, monthTransform[buffer], date, hour, minute);
   
@@ -229,6 +230,7 @@ void MailManager::longest(){
     cout << length_max_queue.top().mail->id << ' ' << length_max_queue.top().mail->length << '\n';
   }
 }
+
 bool MailManager::_valid_mail(unordered_set<String, StringHasher>&content, ExpNode *&node){
   if (node->operand){
     return (content.find(node->expression) != content.end()) ^ node->negate;
@@ -379,8 +381,9 @@ void read(FastQuery &obj){
   obj.start_date = 0;
   obj.end_date = ~0;
   obj.count = 0;
-  char buf;
+  char buf = 0;
   while ((buf = getchar()) == '-' || buf == ' '){
+    cout << "hi2" << endl;
     if (buf == ' ')
       continue;
     buf = getchar();

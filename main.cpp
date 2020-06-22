@@ -10,8 +10,9 @@ int main(void)
 {
   using std::cin;
   using std::string;
-
   // Fast I/O
+  ios_base::sync_with_stdio(false);
+  cin.tie(NULL);
   char command[8];
   String file_path;
   int id;
