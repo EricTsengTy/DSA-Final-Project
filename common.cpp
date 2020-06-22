@@ -65,17 +65,15 @@ unsigned Date::_value_calc(unsigned &year, unsigned &month, unsigned &date, unsi
 /* stdin */
 std::istream &read(std::istream &is, Query &obj){
   obj = Query();
-  char *buf = obj.expression;
+  char *buf = obj.expression.str;
   is >> obj.expression;
   while (buf[0] == '-'){
     if (buf[1] == 'f'){
-      strcpy(obj.sender, buf + 3);
-      obj.sender[strlen(obj.sender) - 1] = '\0';
+      obj.sender.copy(buf + 3);
       obj.exist_sender = true;
     }
     else if (buf[1] == 't'){
-      strcpy(obj.receiver, buf + 3);
-      obj.receiver[strlen(obj.receiver) - 1] = '\0';
+      obj.sender.copy(buf + 3);
       obj.exist_receiver = true;
     }
     else if (buf[1] == 'd'){
@@ -100,3 +98,13 @@ std::istream &operator>>(std::istream &is, Query &obj){
   return is;
 }
 
+std::istream &read(std::istream &is, String &obj){
+  is >> obj.str;
+  obj._size = strlen(obj.str);
+  return is;
+}
+
+std::istream &operator>>(std::istream &is, String &obj){
+  read(is, obj);
+  return is;
+}

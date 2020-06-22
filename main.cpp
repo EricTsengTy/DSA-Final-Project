@@ -13,7 +13,7 @@ int main(void)
 
   // Fast I/O
   char command[8];
-  string file_path;
+  String file_path;
   int id;
   FastQuery q;
 

@@ -7,25 +7,25 @@
 #include <algorithm>
 #include "mail_manager.hpp"
 using namespace std;
-unordered_map<string,unsigned,StringHasher> monthTransform = {
-  pair<string,unsigned>("January", 1),
-  pair<string,unsigned>("February", 2),
-  pair<string,unsigned>("March", 3),
-  pair<string,unsigned>("April", 4),
-  pair<string,unsigned>("May", 5),
-  pair<string,unsigned>("June", 6),
-  pair<string,unsigned>("July", 7),
-  pair<string,unsigned>("August", 8),
-  pair<string,unsigned>("September", 9),
-  pair<string,unsigned>("October", 10),
-  pair<string,unsigned>("November", 11),
-  pair<string,unsigned>("December", 12),
+unordered_map<String,unsigned,StringHasher> monthTransform = {
+  pair<String,unsigned>("January", 1),
+  pair<String,unsigned>("February", 2),
+  pair<String,unsigned>("March", 3),
+  pair<String,unsigned>("April", 4),
+  pair<String,unsigned>("May", 5),
+  pair<String,unsigned>("June", 6),
+  pair<String,unsigned>("July", 7),
+  pair<String,unsigned>("August", 8),
+  pair<String,unsigned>("September", 9),
+  pair<String,unsigned>("October", 10),
+  pair<String,unsigned>("November", 11),
+  pair<String,unsigned>("December", 12),
 };
 
-unsigned long djb2_hash(const string &str){
+unsigned long djb2_hash(const String &str){
   unsigned long value = 5381;
-  for (const auto &i : str){
-    value = ((value << 5) + value) + i;
+  for (int i = 0; i != str.size(); ++i){
+    value = ((value << 5) + value) + str.str[i];
   }
   return value;
 }
@@ -74,8 +74,8 @@ inline void str2lower(char *str){
     str[i] = tolower(str[i]);
 }
 
-inline void str2lower(string &str){
-  for (auto &i : str)
+inline void str2lower(String &str){
+  for (auto &i : str.str)
     i = tolower(i);
 }
 
@@ -122,7 +122,7 @@ void ExpTree::_post2tree_node(vector<Expression *>&post, int &index, ExpNode *&n
     node->depth = max(node->left->depth, node->right->depth) + 1;
   }
 }
-void MailManager::add(string &file_path){
+void MailManager::add(String &file_path){
   auto p = id_cache.find(file_path);
   if (p != id_cache.end()){
     if (p->second->remove){
@@ -139,7 +139,7 @@ void MailManager::add(string &file_path){
     return;
   }
   ifstream fin;
-  fin.open(file_path);
+  fin.open(file_path.str);
   Mail *mail = new Mail;
   char keyword[16], buf;
   // From
@@ -148,7 +148,7 @@ void MailManager::add(string &file_path){
 
   // Date
   unsigned year, date, hour, minute;
-  string buffer;
+  String buffer;
   fin >> keyword >> date >> buffer >> year >> keyword >> hour >> buf >> minute;
   mail->date.set_value(year, monthTransform[buffer], date, hour, minute);
   
@@ -156,9 +156,9 @@ void MailManager::add(string &file_path){
   fin >> keyword >> mail->id;
   // Subject
   fin >> keyword;
-  getline(fin, buffer);
-  string word;
-  for (const auto &i : buffer){
+  String word;
+  fin >> noskipws;
+  for (char i = ' '; i != '\n'; fin >> i){
     if (!isalnum(i)){
       if (!word.empty()){
         mail->content.insert(word);
@@ -172,7 +172,7 @@ void MailManager::add(string &file_path){
     mail->content.insert(word);
     word.clear();
   }
-  
+  fin >> skipws;
   // To
   fin >> keyword >> mail->receiver;
   str2lower(mail->receiver);
@@ -229,9 +229,10 @@ void MailManager::longest(){
     cout << length_max_queue.top().mail->id << ' ' << length_max_queue.top().mail->length << '\n';
   }
 }
-bool MailManager::_valid_mail(unordered_set<string, StringHasher>&content, ExpNode *&node){
-  if (node->operand)
+bool MailManager::_valid_mail(unordered_set<String, StringHasher>&content, ExpNode *&node){
+  if (node->operand){
     return (content.find(node->expression) != content.end()) ^ node->negate;
+  }
   if (node->left->depth < node->right->depth){
     if (node->op == '&')
       return (_valid_mail(content, node->left) && _valid_mail(content, node->right)) ^ node->negate;
@@ -250,10 +251,12 @@ void MailManager::_matching(vector<unsigned>&ids, vector<Mail *>&mails, ExpTree 
   for (auto &i : mails){
     if (i->remove)
       continue;
-    if (_valid_mail(i->content, exp_tree.root))
+    if (_valid_mail(i->content, exp_tree.root)){
       ids.push_back(i->id);
+    }
   }
 }
+
 void MailManager::_matching(vector<unsigned>&ids, ExpTree &exp_tree){
   for (auto &pairs : id2mail){
     if (pairs.second->remove)
@@ -262,7 +265,6 @@ void MailManager::_matching(vector<unsigned>&ids, ExpTree &exp_tree){
       ids.push_back(pairs.second->id);
   }
 }
-  
 
 void MailManager::query(FastQuery &q){
   vector<Mail *>mails;
@@ -272,7 +274,7 @@ void MailManager::query(FastQuery &q){
   bool date_check = (q.exist_start_date || q.exist_end_date);
   if (q.exist_sender){
     str2lower(q.sender);
-    for (auto &mail : sender2id[q.sender]){
+    for (const auto &mail : sender2id[q.sender]){
       if (mail->query_id != query_id){
         mail->query_id = query_id;
         mail->poke = 0;
@@ -287,7 +289,7 @@ void MailManager::query(FastQuery &q){
   }
   if (q.exist_receiver){
     str2lower(q.receiver);
-    for (auto &mail : receiver2id[q.receiver]){
+    for (const auto &mail : receiver2id[q.receiver]){
       if (mail->query_id != query_id){
         mail->query_id = query_id;
         mail->poke = 0;
@@ -384,19 +386,19 @@ void read(FastQuery &obj){
     buf = getchar();
     if (buf == 'f'){
       obj.exist_sender = true;
+      obj.sender.clear();
       int count = -1;
       getchar();
       while ((buf = getchar()) != '\"')
-        obj.sender[++count] = buf;
-      obj.sender[++count] = '\0';
+        obj.sender.push_back(buf);
     }
     else if (buf == 't'){
       obj.exist_receiver = true;
+      obj.receiver.clear();
       int count = -1;
       getchar();
       while ((buf = getchar()) != '\"')
-        obj.receiver[++count] = buf;
-      obj.receiver[++count] = '\0';
+        obj.receiver.push_back(buf);
     }
     else if (buf == 'd'){
       buf = getchar();
@@ -420,7 +422,7 @@ void read(FastQuery &obj){
       }
     }
   }
-  string word;
+  String word;
   while (buf != '\n'){
     if (!isalnum(buf)){
       if (!word.empty()){

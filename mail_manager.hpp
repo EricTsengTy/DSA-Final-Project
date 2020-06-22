@@ -10,12 +10,12 @@
 using namespace std;
 
 inline void str2lower(char *str);
-inline void str2lower(string &str);
+inline void str2lower(String &str);
 
-unsigned long djb2_hash(const string &str);
+unsigned long djb2_hash(const String &str);
 
 struct StringHasher{
-  size_t operator()(const string &obj) const{
+  size_t operator()(const String &obj) const{
     return djb2_hash(obj);
   }
 };
@@ -24,11 +24,11 @@ class Mail{
 public:
   Mail() = default;
   Mail(unsigned i):id(i){};
-  string receiver;
-  string sender;
+  String receiver;
+  String sender;
   Date date;
   unsigned id;
-  unordered_set<string, StringHasher>content; // Subject & Content
+  unordered_set<String, StringHasher>content; // Subject & Content
   unsigned length = 0;
   unsigned poke;
   unsigned query_id = 0;
@@ -60,7 +60,7 @@ public:
 class Expression{
   public:
   Expression() = default;
-  Expression(string &e):operand(true),expression(e){}
+  Expression(String &e):operand(true),expression(e){}
   Expression(const char &o):op(o),operand(false){
     switch(o){
       case '(':
@@ -80,7 +80,7 @@ class Expression{
         break;
     }
   };
-  string expression;
+  String expression;
   char op;
   int priority;
   bool operand;
@@ -89,7 +89,7 @@ class Expression{
 class ExpNode{
 public:
   char op;
-  string expression;
+  String expression;
   bool negate = false;
   ExpNode *left = nullptr;
   ExpNode *right = nullptr;
@@ -111,8 +111,8 @@ private:
 class FastQuery{
 public:
   friend std::istream &read(std::istream &is, Query &obj);
-  char receiver[64];
-  char sender[64];
+  String receiver;
+  String sender;
   Date start_date = 0;  // default min
   Date end_date = ~0;   // default max
   Expression expression[128]; // Maybe would change to array or something
@@ -125,19 +125,19 @@ void read(FastQuery &obj);
 
 class MailManager{
 public:
-  void add(string &file_path);
+  void add(String &file_path);
   void remove(int id);
   void longest();
   void query(FastQuery &q);
 private:
   void _matching(vector<unsigned>&ids, vector<Mail *>&mails, ExpTree &exp_tree);
   void _matching(vector<unsigned>&ids, ExpTree &exp_tree);
-  bool _valid_mail(unordered_set<string, StringHasher>&content, ExpNode *&node);
+  bool _valid_mail(unordered_set<String, StringHasher>&content, ExpNode *&node);
   void _add_data(Mail *&mail);
-  unordered_map<string,Mail *, StringHasher>id_cache;
+  unordered_map<String, Mail *, StringHasher>id_cache;
   unordered_map<int,Mail *>id2mail;
-  unordered_map<string,unordered_set<Mail *>, StringHasher>receiver2id;
-  unordered_map<string,unordered_set<Mail *>, StringHasher>sender2id;
+  unordered_map<String,unordered_set<Mail *>, StringHasher>receiver2id;
+  unordered_map<String,unordered_set<Mail *>, StringHasher>sender2id;
   priority_queue<Mail_length>length_max_queue;
   set<Mail_date>date_set;
   unsigned amount = 0;
