@@ -7,20 +7,6 @@
 #include <algorithm>
 #include "mail_manager.hpp"
 using namespace std;
-unordered_map<String,unsigned,StringHasher> monthTransform = {
-  pair<String,unsigned>("January", 1),
-  pair<String,unsigned>("February", 2),
-  pair<String,unsigned>("March", 3),
-  pair<String,unsigned>("April", 4),
-  pair<String,unsigned>("May", 5),
-  pair<String,unsigned>("June", 6),
-  pair<String,unsigned>("July", 7),
-  pair<String,unsigned>("August", 8),
-  pair<String,unsigned>("September", 9),
-  pair<String,unsigned>("October", 10),
-  pair<String,unsigned>("November", 11),
-  pair<String,unsigned>("December", 12),
-};
 
 unsigned long djb2_hash(const String &str){
   unsigned long value = 5381;
@@ -30,8 +16,8 @@ unsigned long djb2_hash(const String &str){
   return value;
 }
 
-/*
-unsigned month2num(string &str){
+
+unsigned month2num(char *str){
   switch(str[0]){
     case 'J':
       switch(str[3]){
@@ -68,7 +54,7 @@ unsigned month2num(string &str){
       return 12;
   }
 }
-*/
+
 inline void str2lower(char *str){
   for (int i = 0, len = strlen(str); i != len; ++i)
     str[i] = tolower(str[i]);
@@ -151,7 +137,7 @@ void MailManager::add(String &file_path){
   // Date
   unsigned year, date, hour, minute;
   fin >> keyword >> date >> buffer >> year >> keyword >> hour >> buf >> minute;
-  mail->date.set_value(year, monthTransform[buffer], date, hour, minute);
+  mail->date.set_value(year, month2num(buffer.str), date, hour, minute);
   
   // ID
   fin >> keyword >> mail->id;
@@ -383,7 +369,6 @@ void read(FastQuery &obj){
   obj.count = 0;
   char buf = 0;
   while ((buf = getchar()) == '-' || buf == ' '){
-    cout << "hi2" << endl;
     if (buf == ' ')
       continue;
     buf = getchar();

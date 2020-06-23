@@ -6,9 +6,10 @@
 #include <unordered_map>
 #include <set>
 #include <queue>
+#include <ext/pb_ds/assoc_container.hpp>
 #include "common.hpp"
 using namespace std;
-
+using namespace __gnu_pbds;
 inline void str2lower(char *str);
 inline void str2lower(String &str);
 
@@ -134,10 +135,10 @@ private:
   void _matching(vector<unsigned>&ids, ExpTree &exp_tree);
   bool _valid_mail(unordered_set<String, StringHasher>&content, ExpNode *&node);
   void _add_data(Mail *&mail);
-  unordered_map<String, Mail *, StringHasher>id_cache;
-  unordered_map<int,Mail *>id2mail;
-  unordered_map<String,unordered_set<Mail *>, StringHasher>receiver2id;
-  unordered_map<String,unordered_set<Mail *>, StringHasher>sender2id;
+  gp_hash_table<String, Mail *, StringHasher>id_cache;
+  gp_hash_table<int,Mail *>id2mail;
+  gp_hash_table<String,unordered_set<Mail *>, StringHasher>receiver2id;
+  gp_hash_table<String,unordered_set<Mail *>, StringHasher>sender2id;
   priority_queue<Mail_length>length_max_queue;
   set<Mail_date>date_set;
   unsigned amount = 0;

@@ -11,14 +11,14 @@ int main(void)
   using std::cin;
   using std::string;
   // Fast I/O
-  ios_base::sync_with_stdio(false);
-  cin.tie(NULL);
+  // ios_base::sync_with_stdio(false);
+  // cin.tie(NULL);
   char command[8];
   String file_path;
   int id;
   FastQuery q;
 
-  while (cin >> command) {
+  while (scanf("%s", command) != EOF) {
     if (command[0] == 'a') {
       cin >> file_path;
       mailbox.add(file_path);

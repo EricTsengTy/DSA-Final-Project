@@ -18,19 +18,23 @@ public:
     _size = strlen(str);
   }
   bool operator<(const String &obj) const{
+    if (size() < obj.size())
+      return true;
+    else if (size() > obj.size())
+      return false;
     return strcmp(str, obj.str) < 0;
   }
   bool operator>(const String &obj) const{
+    if (size() > obj.size())
+      return true;
+    else if (size() < obj.size())
+      return false;
     return strcmp(str, obj.str) > 0;
   }
   bool operator==(const String &obj) const{
+    if (size() != obj.size())
+      return false;
     return strcmp(str, obj.str) == 0;
-  }
-  bool operator<=(const String &obj) const{
-    return strcmp(str, obj.str) <= 0;
-  }
-  bool operator>=(const String &obj) const{
-    return strcmp(str, obj.str) >= 0;
   }
   void copy(char *s){
     strcpy(str, s);
@@ -48,6 +52,9 @@ public:
   void push_back(char c){
     str[_size] = c;
     str[++_size] = '\0';
+  }
+  void flush_size(){
+    _size = strlen(str);
   }
   char str[64];
 private:
@@ -67,7 +74,7 @@ public:
   Date(int v):value(v){};
   Date(unsigned &year, unsigned &month, unsigned &date, unsigned &hour, unsigned &minute);
   Date(char *str);
-  void set_value(unsigned &year, unsigned &month, unsigned &date, unsigned &hour, unsigned &minute){
+  void set_value(unsigned &year, unsigned month, unsigned &date, unsigned &hour, unsigned &minute){
     value = _value_calc(year, month, date, hour, minute);
   }
   bool operator<(const Date &obj);
